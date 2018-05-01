@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 2.8)
+project( FeatureDetection )
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+add_executable( run main.cpp )
+add_library(evaluate_odometry STATIC "evaluate_odometry.cpp")
+add_library(matrix STATIC "matrix.cpp")
+
+
+target_link_libraries( run ${OpenCV_LIBS} )
+target_link_libraries( run evaluate_odometry)
+target_link_libraries( evaluate_odometry matrix)
