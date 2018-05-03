@@ -18,6 +18,7 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/NonLinearOptimization>
 #include <unsupported/Eigen/NumericalDiff>
+#include <opencv2/core/eigen.hpp>
 
 #include "evaluate_odometry.h"
 
@@ -57,20 +58,75 @@ struct reprojection_error_function : functor<double>
 // pts_l: matched feature points locations in left camera frame
 // pts_r: matched feature points locations in right camera frame
 {
-    Eigen::MatrixXd K1;
-    int const_a;
 
-    reprojection_error_function(int a): functor<double>(3,3) 
+    Eigen::Matrix<double, 3, 3> K1;
+    Eigen::Matrix<double, 3, 3> K2;
+    Eigen::Matrix<double, 3, 3> R;
+    Eigen::Matrix4d T;
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> points4D_l;
+    std::vector<Point2f> points_l_t1;
+    std::vector<Point2f> points_r_t1;
+    int function_nums;
+
+    reprojection_error_function(Eigen::Matrix<double, 3, 3> intrinsic_0, 
+                                Eigen::Matrix<double, 3, 3> intrinsic_1, 
+                                Eigen::Matrix<double, 3, 3> rotation,
+                                Eigen::Matrix4d T_left2right,
+                                Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen,
+                                std::vector<Point2f> points_left_t1, 
+                                std::vector<Point2f> points_right_t1,
+                                int size
+                                ): functor<double>(3, size) 
     {
-         const_a = a;
+         K1 = intrinsic_0;
+         K2 = intrinsic_1;
+         R = rotation;
+         T = T_left2right;
+         points4D_l = points4D_t0_eigen;
+         points_l_t1 = points_left_t1;
+         points_r_t1 = points_right_t1;
+         function_nums = size;
     }
 
-    int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
+    int operator()(const Eigen::VectorXd &translation, Eigen::VectorXd &fvec) const
     {
         // Implement y = 10*(x0+3)^2 + (x1-5)^2
-        fvec(0) = sqrt(10.0) * (x(0)+3.0);
-        fvec(1) = x(1)-5.0;
-        fvec(2) = x(2) + const_a;
+        Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> points4D_r;
+        Eigen::Matrix<double, 3, 4> rigid_transformation;
+
+        Eigen::Matrix<double, 3,  Eigen::Dynamic> projection_left;
+        Eigen::Matrix<double, 3,  Eigen::Dynamic> projection_right;
+
+        points4D_r = T * points4D_l;
+
+        rigid_transformation << R(0), R(3), R(6), translation(0),
+                                R(1), R(4), R(7), translation(1),
+                                R(2), R(5), R(8), translation(2);
+
+        // Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> aa = rigid_transformation * points4D_l;
+
+
+        projection_left = K1 * rigid_transformation * points4D_l;
+        projection_right = K2 * rigid_transformation * points4D_r; 
+
+        for (int i = 0; i < function_nums; i++)
+        {
+            fvec(i) =   pow(projection_left(0, i) - double(points_l_t1[i].x) , 2) 
+                      + pow(projection_left(1, i) - double(points_l_t1[i].y) , 2)
+                      + pow(projection_right(0, i) - double(points_r_t1[i].x) , 2) 
+                      + pow(projection_right(0, i) - double(points_r_t1[i].x) , 2);
+
+            // fvec(i) = translation(0) + 5;
+        }
+
+
+
+
+        // fvec(0) = sqrt(10.0) * (translation(0)+3.0);
+        // fvec(1) = translation(1)-5.0;
+        // fvec(2) = translation(2);
+        // fvec(3) = translation(2);
+        // fvec(4) = translation(2);
 
         return 0;
     }
@@ -175,7 +231,6 @@ Mat loadImageRight(int frame_id){
 }
 
 
-
 void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation, std::vector<Point2f>& current_feature_set)
 {
 
@@ -241,8 +296,8 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation, std::
 
     featureTracking(image_left_t0, image_right_t0, points_left_t0, points_right_t0, status);
 
-    Mat projMatr1 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0., 1., 0.);
-    Mat projMatr2 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0., 1., 0.);
+    Mat projMatr1 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
+    Mat projMatr2 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
 
     // std::cout << "points_left_t0: " << points_left_t0.size() << std::endl;
     // std::cout << "points_right_t0: " << points_right_t0.size() << std::endl;
@@ -251,14 +306,80 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation, std::
 
     std::cout << "points4D_t0: " << points4D_t0.size() << std::endl;
 
+    Eigen::Matrix3d intrinsic_0;
+    intrinsic_0 << 718.8560, 0., 607.1928,
+                   0.,       0., 718.8560,
+                   0.,       0.,        1.;
+
+    Eigen::Matrix3d intrinsic_1;
+    intrinsic_1 << 718.8560, 0., 607.1928,
+                   0.,       0., 718.8560,
+                   0.,       0.,        1.;
+
+    Eigen::Matrix4d T_left2right;
+    T_left2right << 1., 0., 0., -386.14,
+                   0., 1., 0.,      0.,
+                   0., 0., 1.,      0.,
+                   0., 0., 0.,      1.;
 
 
 
+    Eigen::Matrix<double, 3, 3> rotation_eigen;
+    cv2eigen(rotation, rotation_eigen);
+
+    // std::cout << "rotation"<< rotation << std::endl;
+    // std::cout << "rotation_eigen"<< rotation_eigen  << std::endl;
 
 
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen;
+    cv2eigen(points4D_t0, points4D_t0_eigen);
+
+    std::cout << "The matrix points4D_t0_eigen is of size "
+            << points4D_t0_eigen.rows() << "x" << points4D_t0_eigen.cols() << std::endl;
 
 
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen_d = points4D_t0_eigen.cast <double> ();
 
+    featureTracking(image_left_t1, image_right_t1, points_left_t1, points_right_t1, status);
+
+    std::cout << "points_left_t1: " << points_left_t1.size() << std::endl;
+    std::cout << "points_right_t1: " << points_right_t1.size() << std::endl;
+
+
+    std::cout << "The matrix points4D_t0_eigen_d is of size "
+            << points4D_t0_eigen_d.rows() << "x" << points4D_t0_eigen_d.cols() << std::endl;
+
+    // std::cout << "points4D_t0[] " << points4D_t0[0] <<  std::endl;
+
+
+    int size = 1000;
+    std::cout << "size: " << size << std::endl;
+
+    reprojection_error_function error_function(intrinsic_0, intrinsic_1, 
+                                               rotation_eigen, T_left2right, points4D_t0_eigen_d,
+                                               points_left_t1, points_right_t1, size);
+    
+    Eigen::NumericalDiff<reprojection_error_function> numDiff(error_function);
+
+    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<reprojection_error_function>,double> lm(numDiff);
+
+
+    Eigen::VectorXd trans_vector(3);
+    trans_vector(0) = 0;
+    trans_vector(1) = 0;
+    trans_vector(2) = 0;
+    std::cout << "Initial trans_vector: " << trans_vector.transpose() << std::endl;
+
+    lm.parameters.maxfev = 2000;
+    lm.parameters.xtol = 1.0e-10;
+
+    std::cout << "max fun eval: " << lm.parameters.maxfev << std::endl;
+
+    int ret = lm.minimize(trans_vector);
+
+    std::cout << "Iteration: " << lm.iter <<std::endl;
+
+    std::cout << "Optimal trans_vector: " << trans_vector.transpose() << std::endl;
 
 
 
@@ -303,6 +424,8 @@ void integrateOdometryMono(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotat
 {
     double scale = 1.00;
     scale = getAbsoluteScale(frame_id);
+
+    std::cout << "translation: " << scale*translation << std::endl;
 
     if ((scale>0.1)&&(translation.at<double>(2) > translation.at<double>(0)) && (translation.at<double>(2) > translation.at<double>(1))) {
 
@@ -366,7 +489,7 @@ int main(int argc, char const *argv[])
 
         visualOdometry(frame_id, rotation, translation, current_feature_set);
         integrateOdometryMono(frame_id, pose, Rpose, rotation, translation);
-        integrateOdometry(frame_id, pose, Rpose, rotation, translation);
+        // integrateOdometry(frame_id, pose, Rpose, rotation, translation);
 
         // std::cout << "R" << std::endl;
         // std::cout << rotation << std::endl;
