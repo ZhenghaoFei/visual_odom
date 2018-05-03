@@ -15,13 +15,69 @@
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <Eigen/Dense>
+#include <unsupported/Eigen/NonLinearOptimization>
+#include <unsupported/Eigen/NumericalDiff>
 
 #include "evaluate_odometry.h"
 
+using Eigen::MatrixXd;
 using namespace cv;
 
+// Generic function
+template<typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
+
+struct functor
+{
+    typedef _Scalar Scalar;
+    enum {
+        InputsAtCompileTime = NX,
+        ValuesAtCompileTime = NY
+    };
+    typedef Eigen::Matrix<Scalar,InputsAtCompileTime,1> InputType;
+    typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
+    typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
+
+    int m_inputs, m_values;
+
+    functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
+    functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
+
+    int inputs() const { return m_inputs; }
+    int values() const { return m_values; }
+
+};
+
+struct reprojection_error_function : functor<double>
+// Reprojection error function to be minimized for translation t
+// K1, K2: 3 x 3 Intrinsic parameters matrix for the left and right cameras
+// R: 3x3 Estimated rotation matrix from the previous step
+// points3D: 3xM 3D Point cloud generated from stereo pair in left camera
+// frame
+// pts_l: matched feature points locations in left camera frame
+// pts_r: matched feature points locations in right camera frame
+{
+    Eigen::MatrixXd K1;
+    int const_a;
+
+    reprojection_error_function(int a): functor<double>(3,3) 
+    {
+         const_a = a;
+    }
+
+    int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
+    {
+        // Implement y = 10*(x0+3)^2 + (x1-5)^2
+        fvec(0) = sqrt(10.0) * (x(0)+3.0);
+        fvec(1) = x(1)-5.0;
+        fvec(2) = x(2) + const_a;
+
+        return 0;
+    }
+};
+
+
 double getAbsoluteScale(int frame_id)    {
-  
   std::string line;
   int i = 0;
   std::ifstream myfile ("/Users/holly/Downloads/KITTI/poses/00.txt");
@@ -56,7 +112,8 @@ double getAbsoluteScale(int frame_id)    {
 
 }
 
-void featureDetection(Mat image, std::vector<Point2f>& points, std::vector<KeyPoint>& keypoints)  {   //uses FAST as of now, modify parameters as necessary
+void featureDetection(Mat image, std::vector<Point2f>& points)  {   //uses FAST as of now, modify parameters as necessary
+  std::vector<KeyPoint> keypoints;
   int fast_threshold = 20;
   bool nonmaxSuppression = true;
   cv::FAST(image, keypoints, fast_threshold, nonmaxSuppression);
@@ -117,41 +174,54 @@ Mat loadImageRight(int frame_id){
     return image;
 }
 
-void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation)
+
+
+void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation, std::vector<Point2f>& current_feature_set)
 {
 
-
+    // ------------
     // load images
+    // ------------
     Mat image_left_t0 = loadImageLeft(current_frame_id);
     Mat image_right_t0 = loadImageRight(current_frame_id);
 
-    Mat image_left_t1 = loadImageLeft(current_frame_id+1);
-    Mat image_right_t1 = loadImageRight(current_frame_id+1);
+    Mat image_left_t1 = loadImageLeft(current_frame_id + 1);
+    Mat image_right_t1 = loadImageRight(current_frame_id + 1);
 
-
+    // ------------
     // feature detection using FAST
-    std::vector<KeyPoint> keypoints_left_t0, keypoints_right_t0, keypoints_left_t1, keypoints_right_t1;
+    // ------------
     std::vector<Point2f> points_left_t0, points_right_t0, points_left_t1, points_right_t1;        //vectors to store the coordinates of the feature points
     
-    featureDetection(image_left_t0, points_left_t0, keypoints_left_t0);        
-    featureDetection(image_right_t0, points_right_t0, keypoints_right_t0);     
-    featureDetection(image_left_t1, points_left_t1, keypoints_left_t1);        
-    featureDetection(image_right_t1, points_right_t1, keypoints_right_t1);     
+    featureDetection(image_left_t0, points_left_t0);        
+    featureDetection(image_right_t0, points_right_t0);  
 
-    // std::cout << "left t0 feature point size before tracking " << points_left_t0.size() << std::endl;
+    featureDetection(image_left_t1, points_left_t1);        
+    featureDetection(image_right_t1, points_right_t1);     
 
+    if (current_feature_set.size() <= 2000)
+    {
+        std::cout << "reinitialize feature set: "  << std::endl;
+        current_feature_set = points_left_t0;
+    }   
+    std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
+
+    // ------------
     // feature tracking using KLT tracker and circular matching
+    // ------------
     std::vector<uchar> status;
-    featureTracking(image_left_t0, image_right_t0, points_left_t0, points_right_t0, status);
+    featureTracking(image_left_t0, image_right_t0, current_feature_set, points_right_t0, status);
     featureTracking(image_right_t0, image_right_t1, points_right_t0, points_right_t1, status);
     featureTracking(image_right_t1, image_left_t1, points_right_t1, points_left_t1, status);
     featureTracking(image_left_t1, image_left_t0, points_left_t1, points_left_t0, status);
 
-    // std::cout << "left t0 feature point size after tracking " << points_left_t0.size() << std::endl;
+    current_feature_set = points_left_t0;
+    std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
 
 
-
-    // Rotation(R) Estimation using Nister's Five Points Algorithm
+    // ------------
+    // Rotation(R) estimation using Nister's Five Points Algorithm
+    // ------------
 
     //TODO: add a fucntion to load these values directly from KITTI's calib files
     // WARNING: different sequences in the KITTI VO dataset have different intrinsic/extrinsic parameters
@@ -164,15 +234,40 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation)
     recoverPose(E, points_left_t1, points_left_t0, rotation, translation, focal, principle_point, mask);
 
 
+    // ------------
+    // Translation (t) estimation by minimizing the image projection error
+    // ------------
+    Mat points4D_t0;
+
+    featureTracking(image_left_t0, image_right_t0, points_left_t0, points_right_t0, status);
+
+    Mat projMatr1 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0., 1., 0.);
+    Mat projMatr2 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0., 1., 0.);
+
+    // std::cout << "points_left_t0: " << points_left_t0.size() << std::endl;
+    // std::cout << "points_right_t0: " << points_right_t0.size() << std::endl;
+
+    triangulatePoints( projMatr1,  projMatr2,  points_left_t0,  points_right_t0,  points4D_t0);
+
+    std::cout << "points4D_t0: " << points4D_t0.size() << std::endl;
 
 
-    imshow( "Left camera", image_left_t0 );
-    imshow( "Right camera", image_right_t0 );
 
 
 
-    // drawFeaturePoints(image_left_t0, points_left_t0);
-    // imshow("points ", image_left_t0 );
+
+
+
+
+
+
+
+    // imshow( "Left camera", image_left_t0 );
+    // imshow( "Right camera", image_right_t0 );
+
+
+    drawFeaturePoints(image_left_t0, current_feature_set);
+    imshow("points ", image_left_t0 );
 
 
 
@@ -192,25 +287,42 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation)
 
 
 
-    // // if ( !image.data )
-    // // {
-    // //     printf("No image data \n");
-    // //     return -1;
-    // // }
-    // // namedWindow("Display Image", WINDOW_AUTOSIZE );
-    // // imshow("Display Image", image);
+    // if ( !image.data )
+    // {
+    //     printf("No image data \n");
+    //     return -1;
+    // }
+    // namedWindow("Display Image", WINDOW_AUTOSIZE );
+    // imshow("Display Image", image);
 
-    // // waitKey(0);
+    // waitKey(0);
+
+}
+
+void integrateOdometryMono(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation)
+{
+    double scale = 1.00;
+    scale = getAbsoluteScale(frame_id);
+
+    if ((scale>0.1)&&(translation.at<double>(2) > translation.at<double>(0)) && (translation.at<double>(2) > translation.at<double>(1))) {
+
+        pose = pose + scale * Rpose * translation;
+        Rpose = rotation * Rpose;
+    }
+    
+    else {
+     std::cout << "[WARNING] scale below 0.1, or incorrect translation" << std::endl;
+    }
+
 
 }
 
 void integrateOdometry(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation)
 {
-    double scale = 1.00;
-    scale = getAbsoluteScale(frame_id);
 
-    pose = pose + scale * Rpose * translation;
+    pose = pose +  Rpose * translation;
     Rpose = rotation * Rpose;
+
 }
 
 void display(Mat& trajectory, Mat& pose, Mat& pose_gt)
@@ -244,13 +356,16 @@ int main(int argc, char const *argv[])
     Mat pose_gt = Mat::zeros(1, 3, CV_64F);
 
     Mat trajectory = Mat::zeros(600, 600, CV_8UC3);
+    std::vector<Point2f> current_feature_set;
 
     for (int frame_id = 0; frame_id < 1000; frame_id++)
     {
 
         std::cout << "frame_id " << frame_id << std::endl;
+        // std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
 
-        visualOdometry(frame_id, rotation, translation);
+        visualOdometry(frame_id, rotation, translation, current_feature_set);
+        integrateOdometryMono(frame_id, pose, Rpose, rotation, translation);
         integrateOdometry(frame_id, pose, Rpose, rotation, translation);
 
         // std::cout << "R" << std::endl;
