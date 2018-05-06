@@ -5,6 +5,7 @@
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
+
 #include <iostream>
 #include <ctype.h>
 #include <algorithm> // for copy
@@ -270,18 +271,14 @@ void circularMatching(Mat img_l_0, Mat img_r_0, Mat img_l_1, Mat img_r_1,
   std::vector<uchar> status2;
   std::vector<uchar> status3;
 
-   
   calcOpticalFlowPyrLK(img_l_0, img_r_0, current_feature_set, points_r_0, status0, err, winSize, 3, termcrit, 0, 0.001);
-
- 
+   
   calcOpticalFlowPyrLK(img_r_0, img_r_1, points_r_0, points_r_1, status1, err, winSize, 3, termcrit, 0, 0.001);
     
   calcOpticalFlowPyrLK(img_r_1, img_l_1, points_r_1, points_l_1, status2, err, winSize, 3, termcrit, 0, 0.001);
     
   calcOpticalFlowPyrLK(img_l_1, img_l_0, points_l_1, points_l_0, status3, err, winSize, 3, termcrit, 0, 0.001);
   
-
-
   deleteUnmatchFeaturesCircle(points_l_0, points_r_0, points_r_1, points_l_1,
                         status0, status1, status2, status3);
 
@@ -319,9 +316,8 @@ Mat loadImageRight(int frame_id){
 }
 
 
-void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, Mat& translation_stereo, std::vector<Point2f>& current_feature_set)
+void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation, std::vector<Point2f>& current_feature_set)
 {
-
 
     // ------------
     // load images
@@ -349,7 +345,7 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
         // std::cout << "points_left_t0 feature size : "  << points_left_t0.size() << std::endl;
         current_feature_set = points_left_t0;
     }   
-    std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
+    // std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
 
     // ------------
     // feature tracking using KLT tracker and circular matching
@@ -376,7 +372,7 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     //recovering the pose and the essential matrix
     Mat E, mask;
     E = findEssentialMat(points_left_t1, points_left_t0, focal, principle_point, RANSAC, 0.999, 1.0, mask);
-    recoverPose(E, points_left_t1, points_left_t0, rotation, translation_mono, focal, principle_point, mask);
+    recoverPose(E, points_left_t1, points_left_t0, rotation, translation, focal, principle_point, mask);
 
 
     // ------------
@@ -391,9 +387,43 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
 
     triangulatePoints( projMatr1,  projMatr2,  points_left_t0,  points_right_t0,  points4D_t0);
 
-    // -----------------
-    // Translation (t) estimation by use stereoCalibrate
-    // ------------------------
+    // std::cout << "points4D_t0 row: " << points4D_t0.rows << std::endl;
+    // std::cout << "points4D_t0 col: " << points4D_t0.cols << std::endl;
+    // std::cout << "points4D_t0 col[0]: " << points4D_t0.col(0).t() << std::endl;
+
+    Eigen::Matrix<double, 3, 4> proj0;
+    proj0 <<       718.8560,       0.,  607.1928, 0,
+                   0.,       718.8560,  185.2157, 0,
+                   0.,             0.,        1., 0;
+
+    Eigen::Matrix<double, 3, 4> proj1;
+    proj1 <<       718.8560,       0.,  607.1928,  -386.1448,
+                   0.,       718.8560,  185.2157,         0.,
+                   0.,             0.,        1.,         0.;
+
+    Eigen::Matrix4d T_left2right;
+    T_left2right << 1., 0., 0., -386.1448,
+                   0., 1., 0.,      0.,
+                   0., 0., 1.,      0.,
+                   0., 0., 0.,      1.;
+
+
+
+    Eigen::Matrix<double, 3, 3> rotation_eigen;
+    cv2eigen(rotation, rotation_eigen);
+
+
+    std::cout << "rotation_eigen " << rotation_eigen << std::endl;
+
+
+    Eigen::Matrix<double, 3, 4> rigid_transformation;
+
+    rigid_transformation << rotation_eigen(0, 0), rotation_eigen(0, 1), rotation_eigen(0, 2), 0,
+                            rotation_eigen(1, 0), rotation_eigen(1, 1), rotation_eigen(1, 2), 1,
+                            rotation_eigen(2, 0), rotation_eigen(2, 1), rotation_eigen(2, 2), 2;
+
+    std::cout << "rigid_transformation " << rigid_transformation << std::endl;
+
 
     Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen;
     cv2eigen(points4D_t0, points4D_t0_eigen);
@@ -401,147 +431,51 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
 
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen_d = points4D_t0_eigen.cast <double> ();
 
-    std::vector<std::vector<Point3f> > objectPoints;
-    objectPoints.resize(points4D_t0_eigen_d.cols());
-
     for (int i = 0; i < points4D_t0_eigen_d.cols(); i++)
     {
         points4D_t0_eigen_d(0, i) = points4D_t0_eigen_d(0, i)/points4D_t0_eigen_d(3, i);
         points4D_t0_eigen_d(1, i) = points4D_t0_eigen_d(1, i)/points4D_t0_eigen_d(3, i);
         points4D_t0_eigen_d(2, i) = points4D_t0_eigen_d(2, i)/points4D_t0_eigen_d(3, i);
         points4D_t0_eigen_d(3, i) = 1.;
-        objectPoints[i].push_back(Point3f(points4D_t0_eigen_d(0, i), points4D_t0_eigen_d(1, i) , points4D_t0_eigen_d(2, i)));
 
     }
 
 
-    std::vector<std::vector<Point2f> > points_left_t0v;
-    points_left_t0v.resize(points_left_t0.size());
-    for (int i = 0; i < points_left_t0.size(); i++)
-    {
-        points_left_t0v[i].push_back(Point2f(points_left_t0[i].x, points_left_t0[i].y));
+    // std::cout << "points4D_t0[] " << points4D_t0[0] <<  std::endl;
 
-    }
 
-    std::vector<std::vector<Point2f> > points_left_t1v;
-    points_left_t1v.resize(points_left_t1.size());
-    for (int i = 0; i < points_left_t1.size(); i++)
-    {
-        points_left_t1v[i].push_back(Point2f(points_left_t1[i].x, points_left_t1[i].y));
+    int size = points4D_t0_eigen_d.cols();
+    std::cout << "Points Size: " << size << std::endl;
 
-    }
-
-    std::cout << "objectPoints[0]" << objectPoints[0] << std::endl;
-
-    Mat cameraMatrix1= (Mat_<float>(3, 3) << 718.8560, 0., 607.1928, 0., 718.8560, 185.2157, 0,  0., 1.);
-    Mat cameraMatrix2= (Mat_<float>(3, 3) << 718.8560, 0., 607.1928, 0., 718.8560, 185.2157, 0,  0., 1.);
+    reprojection_error_function error_function(proj0, proj1, 
+                                               rotation_eigen, T_left2right, points4D_t0_eigen_d,
+                                               points_left_t1, points_right_t1, size);
     
-    Size imageSize = image_left_t0.size();
-    Mat essentialMatrix;
-    Mat fundamentalMatrix;
-    Mat distCoeffs1;
-    Mat distCoeffs2;
-    Mat rotation_stereo = Mat::eye(3, 3, CV_64F);
+    Eigen::NumericalDiff<reprojection_error_function> numDiff(error_function);
 
-    std::cout << "points4D_t0 : "  << points4D_t0.size() << std::endl;
-    std::cout << "objectPoints : "  << objectPoints.size() << std::endl;
-    std::cout << "points_left_t0v : "  << points_left_t0v.size() << std::endl;
-    std::cout << "points_left_t1v : "  << points_left_t1v.size() << std::endl;
+    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<reprojection_error_function>,double> lm(numDiff);
 
 
-    stereoCalibrate(objectPoints, points_left_t0v, points_left_t1v, 
-                    cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2,
-                    imageSize, rotation_stereo, translation_stereo, essentialMatrix, fundamentalMatrix,
-                    CALIB_FIX_INTRINSIC,
-                    TermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 30, 1e-5));
+    Eigen::VectorXd trans_vector(3);
+    trans_vector(0) = 0;
+    trans_vector(1) = 0;
+    trans_vector(2) = 0;
+
+    lm.parameters.maxfev = 2000;
+    lm.parameters.xtol = 1.0e-10;
 
 
+    int ret = lm.minimize(trans_vector);
 
-    // Eigen::Matrix<double, 3, 4> proj0;
-    // proj0 <<       718.8560,       0.,  607.1928, 0,
-    //                0.,       718.8560,  185.2157, 0,
-    //                0.,             0.,        1., 0;
+    std::cout << "Iteration: " << lm.iter <<std::endl;
 
-    // Eigen::Matrix<double, 3, 4> proj1;
-    // proj1 <<       718.8560,       0.,  607.1928,  -386.1448,
-    //                0.,       718.8560,  185.2157,         0.,
-    //                0.,             0.,        1.,         0.;
+    std::cout << "Optimal trans_vector: " << trans_vector.transpose() << std::endl;
 
-    // Eigen::Matrix4d T_left2right;
-    // T_left2right << 1., 0., 0., -386.1448,
-    //                0., 1., 0.,      0.,
-    //                0., 0., 1.,      0.,
-    //                0., 0., 0.,      1.;
+    translation.at<double>(0) =  -trans_vector(0);
+    translation.at<double>(1) =  -trans_vector(1);
+    translation.at<double>(2) =  -trans_vector(2);
 
-
-
-    // Eigen::Matrix<double, 3, 3> rotation_eigen;
-    // cv2eigen(rotation, rotation_eigen);
-
-
-    // // std::cout << "rotation_eigen " << rotation_eigen << std::endl;
-
-
-    // // Eigen::Matrix<double, 3, 4> rigid_transformation;
-
-    // // rigid_transformation << rotation_eigen(0, 0), rotation_eigen(0, 1), rotation_eigen(0, 2), 0,
-    // //                         rotation_eigen(1, 0), rotation_eigen(1, 1), rotation_eigen(1, 2), 1,
-    // //                         rotation_eigen(2, 0), rotation_eigen(2, 1), rotation_eigen(2, 2), 2;
-
-    // // std::cout << "rigid_transformation " << rigid_transformation << std::endl;
-
-
-    // Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen;
-    // cv2eigen(points4D_t0, points4D_t0_eigen);
-
-
-    // Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen_d = points4D_t0_eigen.cast <double> ();
-
-    // for (int i = 0; i < points4D_t0_eigen_d.cols(); i++)
-    // {
-    //     points4D_t0_eigen_d(0, i) = points4D_t0_eigen_d(0, i)/points4D_t0_eigen_d(3, i);
-    //     points4D_t0_eigen_d(1, i) = points4D_t0_eigen_d(1, i)/points4D_t0_eigen_d(3, i);
-    //     points4D_t0_eigen_d(2, i) = points4D_t0_eigen_d(2, i)/points4D_t0_eigen_d(3, i);
-    //     points4D_t0_eigen_d(3, i) = 1.;
-
-    // }
-
-
-    // // std::cout << "points4D_t0[] " << points4D_t0[0] <<  std::endl;
-
-
-    // int size = points4D_t0_eigen_d.cols();
-    // std::cout << "Points Size: " << size << std::endl;
-
-    // reprojection_error_function error_function(proj0, proj1, 
-    //                                            rotation_eigen, T_left2right, points4D_t0_eigen_d,
-    //                                            points_left_t1, points_right_t1, size);
-    
-    // Eigen::NumericalDiff<reprojection_error_function> numDiff(error_function);
-
-    // Eigen::LevenbergMarquardt<Eigen::NumericalDiff<reprojection_error_function>,double> lm(numDiff);
-
-
-    // Eigen::VectorXd trans_vector(3);
-    // trans_vector(0) = 0;
-    // trans_vector(1) = 0;
-    // trans_vector(2) = 0;
-
-    // lm.parameters.maxfev = 2000;
-    // lm.parameters.xtol = 1.0e-10;
-
-
-    // int ret = lm.minimize(trans_vector);
-
-    // std::cout << "Iteration: " << lm.iter <<std::endl;
-
-    // std::cout << "Optimal trans_vector: " << trans_vector.transpose() << std::endl;
-
-    // translation_stereo.at<double>(0) =  -trans_vector(0);
-    // translation_stereo.at<double>(1) =  -trans_vector(1);
-    // translation_stereo.at<double>(2) =  -trans_vector(2);
-
-    std::cout << "translation_stereo cv2: " << translation_stereo.t() << std::endl;
+    std::cout << "translation cv2: " << translation.t() << std::endl;
 
     // imshow( "Left camera", image_left_t0 );
     // imshow( "Right camera", image_right_t0 );
@@ -549,25 +483,6 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
 
     drawFeaturePoints(image_left_t1, current_feature_set);
     imshow("points ", image_left_t1 );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -599,17 +514,17 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
 
 }
 
-void integrateOdometryMono(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation_mono)
+void integrateOdometryMono(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation)
 {
     double scale = 1.00;
     scale = getAbsoluteScale(frame_id);
 
-    std::cout << "translation_mono: " << scale*translation_mono.t() << std::endl;
+    std::cout << "translation: " << scale*translation.t() << std::endl;
 
-    if ((scale>0.1)&&(translation_mono.at<double>(2) > translation_mono.at<double>(0)) && (translation_mono.at<double>(2) > translation_mono.at<double>(1))) {
-    // if ((scale>0.1)) {
+    // if ((scale>0.1)&&(translation.at<double>(2) > translation.at<double>(0)) && (translation.at<double>(2) > translation.at<double>(1))) {
+    if ((scale>0.1)) {
 
-        pose = pose + scale * Rpose * translation_mono;
+        pose = pose + scale * Rpose * translation;
         Rpose = rotation * Rpose;
     }
     
@@ -620,29 +535,12 @@ void integrateOdometryMono(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotat
 
 }
 
-void integrateOdometryScale(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation_mono, const Mat& translation_stereo)
+void integrateOdometry(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation)
 {
-
-    double scale = sqrt((translation_stereo.at<double>(0))*(translation_stereo.at<double>(0)) 
-                        + (translation_stereo.at<double>(1))*(translation_stereo.at<double>(1))
-                        + (translation_stereo.at<double>(2))*(translation_stereo.at<double>(2))) ;
-
-    if (scale<10) {
+    if ((translation.at<double>(0)<100)) {
 
 
-      pose = pose +scale *  Rpose * translation_mono;
-      Rpose = rotation * Rpose;
-
-    }
-
-}
-
-void integrateOdometryStereo(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation_stereo)
-{
-    if ((translation_stereo.at<double>(2)<100)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) {
-
-
-      pose = pose + Rpose * translation_stereo;
+      pose = pose + Rpose * translation;
       Rpose = rotation * Rpose;
 
     }
@@ -674,9 +572,7 @@ int main(int argc, char const *argv[])
 
     // Mat rotation, translation;
     Mat rotation = Mat::eye(3, 3, CV_64F);
-    Mat translation_mono = Mat::zeros(3, 1, CV_64F);
-    Mat translation_stereo = Mat::zeros(3, 1, CV_64F);
-
+    Mat translation = Mat::zeros(3, 1, CV_64F);
     Mat pose = Mat::zeros(3, 1, CV_64F);
     Mat Rpose = Mat::eye(3, 3, CV_64F);
     Mat pose_gt = Mat::zeros(1, 3, CV_64F);
@@ -690,10 +586,9 @@ int main(int argc, char const *argv[])
         std::cout << "frame_id " << frame_id << std::endl;
         // std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
 
-        visualOdometry(frame_id, rotation, translation_mono, translation_stereo, current_feature_set);
-        // integrateOdometryMono(frame_id, pose, Rpose, rotation, translation_mono);
-        // integrateOdometryScale(frame_id, pose, Rpose, rotation, translation_mono, translation_stereo);
-        integrateOdometryStereo(frame_id, pose, Rpose, rotation, translation_stereo);
+        visualOdometry(frame_id, rotation, translation, current_feature_set);
+        // integrateOdometryMono(frame_id, pose, Rpose, rotation, translation);
+        integrateOdometry(frame_id, pose, Rpose, rotation, translation);
 
         // std::cout << "R" << std::endl;
         // std::cout << rotation << std::endl;
