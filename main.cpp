@@ -331,6 +331,8 @@ Mat loadImageRight(int frame_id){
 }
 
 void initializeFeatures(int current_frame_id, 
+                        Mat& image_left_t0,
+                        Mat& image_right_t0,
                         std::vector<Point2f>& points_left_t0,
                         std::vector<Point2f>& points_right_t0)
 {
@@ -338,8 +340,8 @@ void initializeFeatures(int current_frame_id,
     // ------------
     // load images
     // ------------
-    Mat image_left_t0 = loadImageLeft(current_frame_id);
-    Mat image_right_t0 = loadImageRight(current_frame_id);
+    image_left_t0 = loadImageLeft(current_frame_id);
+    image_right_t0 = loadImageRight(current_frame_id);
 
     featureDetection(image_left_t0, points_left_t0);        
     featureDetection(image_right_t0, points_right_t0);  
@@ -347,6 +349,8 @@ void initializeFeatures(int current_frame_id,
 }
 
 void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, Mat& translation_stereo, 
+                    Mat& image_left_t0,
+                    Mat& image_right_t0,
                     std::vector<Point2f>& current_feature_set, 
                     std::vector<Point2f>& points_left_t0,
                     std::vector<Point2f>& points_right_t0)
@@ -356,8 +360,8 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     // ------------
     // load images
     // ------------
-    Mat image_left_t0 = loadImageLeft(current_frame_id);
-    Mat image_right_t0 = loadImageRight(current_frame_id);
+    // Mat image_left_t0 = loadImageLeft(current_frame_id);
+    // Mat image_right_t0 = loadImageRight(current_frame_id);
 
     Mat image_left_t1 = loadImageLeft(current_frame_id + 1);
     Mat image_right_t1 = loadImageRight(current_frame_id + 1);
@@ -375,10 +379,12 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
 
     if (current_feature_set.size() <= 2000)
     {
-        // std::cout << "reinitialize feature set: "  << std::endl;
-        // std::cout << "points_left_t0 feature size : "  << points_left_t0.size() << std::endl;
+        std::cout << "reinitialize feature set: "  << std::endl;
+        std::cout << "points_left_t0 feature size : "  << points_left_t0.size() << std::endl;
+        featureDetection(image_left_t0, points_left_t0);        
         current_feature_set = points_left_t0;
     }   
+
     std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
 
     // ------------
@@ -440,8 +446,8 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
 
     }
 
-    std::cout << "points4D : " << points4D_t0_eigen_d.cols() <<std::endl;
-    std::cout << "points4D[0] : " << points4D_t0_eigen_d(0,0) <<std::endl;
+    // std::cout << "points4D : " << points4D_t0_eigen_d.cols() <<std::endl;
+    // std::cout << "points4D[0] : " << points4D_t0_eigen_d(0,0) <<std::endl;
 
     std::vector<cv::Point3f> list_points3d;
     for(int i = 0; i < points4D_t0_eigen_d.cols(); ++i)
@@ -466,14 +472,20 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
                         useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                         inliers, flags );
 
-    std::cout << "rvec : " <<rvec <<std::endl;
     translation_stereo = -translation_stereo;
-    std::cout << "translation_stereo : " <<translation_stereo <<std::endl;
+
+    // std::cout << "rvec : " <<rvec <<std::endl;
+    // std::cout << "translation_stereo : " <<translation_stereo <<std::endl;
 
 
 
+    // Prepare for next frame
     points_left_t0 = points_left_t1;
     points_right_t0 = points_right_t1;
+    image_left_t0 = image_left_t1;
+    image_right_t0 = image_right_t1;
+
+
     // translation_stereo.at<double>(0) =  -trans_vector(0);
     // translation_stereo.at<double>(1) =  -trans_vector(1);
     // translation_stereo.at<double>(2) =  -trans_vector(2);
@@ -624,16 +636,20 @@ int main(int argc, char const *argv[])
     std::vector<Point2f> current_feature_set;
     std::vector<Point2f> points_l, points_r;
 
+    int init_frame_id = 0;
+    Mat image_l, image_r;
+    initializeFeatures(init_frame_id, image_l, image_r, points_l, points_r);
 
-    initializeFeatures(0, points_l, points_r);
-
-    for (int frame_id = 0; frame_id < 1000; frame_id++)
+    for (int frame_id = init_frame_id; frame_id < 1000; frame_id++)
     {
 
+        std::cout << std::endl;
         std::cout << "frame_id " << frame_id << std::endl;
         // std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
 
-        visualOdometry(frame_id, rotation, translation_mono, translation_stereo, current_feature_set, points_l, points_r);
+        visualOdometry(frame_id, rotation, translation_mono, translation_stereo, 
+                       image_l, image_r,
+                       current_feature_set, points_l, points_r);
         // integrateOdometryMono(frame_id, pose, Rpose, rotation, translation_mono);
         // integrateOdometryScale(frame_id, pose, Rpose, rotation, translation_mono, translation_stereo);
         integrateOdometryStereo(frame_id, pose, Rpose, rotation, translation_stereo);
