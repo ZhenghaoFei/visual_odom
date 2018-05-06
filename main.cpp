@@ -48,7 +48,7 @@ struct functor
 
 };
 
-void hom2cart( Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3_l,  Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3_r){
+void hom2cart2( Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3_l,  Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3_r){
   // convert homogeneous coordinates to cartesian coordinates by normalizing z
   for (int i = 0; i < points3_l.cols(); i++)
   {
@@ -61,6 +61,17 @@ void hom2cart( Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3_l,  Eigen::Ma
       points3_r(2, i) = 1.;
   }
 }
+
+void hom2cart( Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3){
+  // convert homogeneous coordinates to cartesian coordinates by normalizing z
+  for (int i = 0; i < points3.cols(); i++)
+  {
+      points3(0, i) = points3(0, i)/points3(2, i);
+      points3(1, i) = points3(1, i)/points3(2, i);
+      points3(2, i) = 1.;
+  }
+}
+
 
 struct reprojection_error_function : functor<double>
 // Reprojection error function to be minimized for translation t
@@ -89,7 +100,7 @@ struct reprojection_error_function : functor<double>
                                 std::vector<Point2f> points_left_t1, 
                                 std::vector<Point2f> points_right_t1,
                                 int size
-                                ): functor<double>(3, size*4) 
+                                ): functor<double>(3, size*2) 
     {
          P1 = proj_0;
          P2 = proj_1;
@@ -124,17 +135,19 @@ struct reprojection_error_function : functor<double>
 
 
         projection_left = P1 * rigid_transformation * points4D_l;
-        projection_right = P2 * rigid_transformation * points4D_l; 
+        // projection_right = P2 * rigid_transformation * points4D_l; 
 
-        hom2cart(projection_left, projection_right);
+        // hom2cart2(projection_left, projection_right);
+        hom2cart(projection_left);
 
         for (int i = 0; i < function_nums; i++)
         {
-            int feature_idx = 4 * i;
+            int feature_idx = 2 * i;
             fvec(feature_idx) =  projection_left(0, i) - double(points_l_t1[i].x); 
             fvec(feature_idx + 1) =  projection_left(1, i) - double(points_l_t1[i].y);
-            fvec(feature_idx + 2) =  projection_right(0, i) - double(points_r_t1[i].x); 
-            fvec(feature_idx + 3) =  projection_right(1, i) - double(points_r_t1[i].y); 
+            // fvec(feature_idx + 2) =  projection_right(0, i) - double(points_r_t1[i].x); 
+            // fvec(feature_idx + 3) =  projection_right(1, i) - double(points_r_t1[i].y); 
+
 
             // fvec(feature_idx) =  translation(1) + 5;
             // fvec(feature_idx + 1) =  translation(2) + 5;
@@ -271,8 +284,7 @@ void circularMatching(Mat img_l_0, Mat img_r_0, Mat img_l_1, Mat img_r_1,
   std::vector<uchar> status3;
 
    
-  calcOpticalFlowPyrLK(img_l_0, img_r_0, current_feature_set, points_r_0, status0, err, winSize, 3, termcrit, 0, 0.001);
-
+  calcOpticalFlowPyrLK(img_l_0, img_r_0, points_l_0, points_r_0, status0, err, winSize, 3, termcrit, 0, 0.001);
  
   calcOpticalFlowPyrLK(img_r_0, img_r_1, points_r_0, points_r_1, status1, err, winSize, 3, termcrit, 0, 0.001);
     
@@ -356,6 +368,8 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     // ------------
     std::vector<uchar> status;
 
+    points_left_t0 = current_feature_set;
+
     circularMatching(image_left_t0, image_right_t0, image_left_t1, image_right_t1,
                      current_feature_set, points_left_t0, points_right_t0, points_left_t1, points_right_t1,
                      status);
@@ -379,20 +393,18 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     recoverPose(E, points_left_t1, points_left_t0, rotation, translation_mono, focal, principle_point, mask);
 
 
-    // ------------
-    // Translation (t) estimation by minimizing the image projection error
-    // ------------
+    // ---------------
+    // Triangulate 3D Points
+    // ---------------
     Mat points4D_t0;
 
     Mat projMatr1 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
     Mat projMatr2 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
 
-
-
     triangulatePoints( projMatr1,  projMatr2,  points_left_t0,  points_right_t0,  points4D_t0);
 
     // -----------------
-    // Translation (t) estimation by use stereoCalibrate
+    // Translation (t) estimation by use solvePnPRansac
     // ------------------------
 
     Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen;
@@ -401,60 +413,50 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
 
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen_d = points4D_t0_eigen.cast <double> ();
 
-    std::vector<std::vector<Point3f> > objectPoints;
-    objectPoints.resize(points4D_t0_eigen_d.cols());
-
     for (int i = 0; i < points4D_t0_eigen_d.cols(); i++)
     {
         points4D_t0_eigen_d(0, i) = points4D_t0_eigen_d(0, i)/points4D_t0_eigen_d(3, i);
         points4D_t0_eigen_d(1, i) = points4D_t0_eigen_d(1, i)/points4D_t0_eigen_d(3, i);
         points4D_t0_eigen_d(2, i) = points4D_t0_eigen_d(2, i)/points4D_t0_eigen_d(3, i);
         points4D_t0_eigen_d(3, i) = 1.;
-        objectPoints[i].push_back(Point3f(points4D_t0_eigen_d(0, i), points4D_t0_eigen_d(1, i) , points4D_t0_eigen_d(2, i)));
 
     }
 
+    std::cout << "points4D : " << points4D_t0_eigen_d.cols() <<std::endl;
+    std::cout << "points4D[0] : " << points4D_t0_eigen_d(0,0) <<std::endl;
 
-    std::vector<std::vector<Point2f> > points_left_t0v;
-    points_left_t0v.resize(points_left_t0.size());
-    for (int i = 0; i < points_left_t0.size(); i++)
+    std::vector<cv::Point3f> list_points3d;
+    for(int i = 0; i < points4D_t0_eigen_d.cols(); ++i)
     {
-        points_left_t0v[i].push_back(Point2f(points_left_t0[i].x, points_left_t0[i].y));
-
+        list_points3d.push_back(Point3f(points4D_t0_eigen_d(0,i), points4D_t0_eigen_d(1,i), points4D_t0_eigen_d(2,i)));                                      // add 3D point
     }
 
-    std::vector<std::vector<Point2f> > points_left_t1v;
-    points_left_t1v.resize(points_left_t1.size());
-    for (int i = 0; i < points_left_t1.size(); i++)
-    {
-        points_left_t1v[i].push_back(Point2f(points_left_t1[i].x, points_left_t1[i].y));
-
-    }
-
-    std::cout << "objectPoints[0]" << objectPoints[0] << std::endl;
-
-    Mat cameraMatrix1= (Mat_<float>(3, 3) << 718.8560, 0., 607.1928, 0., 718.8560, 185.2157, 0,  0., 1.);
-    Mat cameraMatrix2= (Mat_<float>(3, 3) << 718.8560, 0., 607.1928, 0., 718.8560, 185.2157, 0,  0., 1.);
-    
-    Size imageSize = image_left_t0.size();
-    Mat essentialMatrix;
-    Mat fundamentalMatrix;
-    Mat distCoeffs1;
-    Mat distCoeffs2;
-    Mat rotation_stereo = Mat::eye(3, 3, CV_64F);
-
-    std::cout << "points4D_t0 : "  << points4D_t0.size() << std::endl;
-    std::cout << "objectPoints : "  << objectPoints.size() << std::endl;
-    std::cout << "points_left_t0v : "  << points_left_t0v.size() << std::endl;
-    std::cout << "points_left_t1v : "  << points_left_t1v.size() << std::endl;
 
 
-    stereoCalibrate(objectPoints, points_left_t0v, points_left_t1v, 
-                    cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2,
-                    imageSize, rotation_stereo, translation_stereo, essentialMatrix, fundamentalMatrix,
-                    CALIB_FIX_INTRINSIC,
-                    TermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 30, 1e-5));
+    Mat distCoeffs = Mat::zeros(4, 1, CV_64FC1);  
+    Mat inliers;  
 
+    cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
+    // cv::Mat tvec = cv::Mat::zeros(3, 1, CV_64FC1);
+    Mat intrinsic_matrix = (Mat_<float>(3, 3) << 718.8560, 0., 607.1928, 0., 718.8560, 185.2157, 0.,  0., 1.);
+    int iterationsCount = 500;        // number of Ransac iterations.
+    float reprojectionError = 2.0;    // maximum allowed distance to consider it an inlier.
+    float confidence = 0.95;          // RANSAC successful confidence.
+    bool useExtrinsicGuess = false;
+    int flags =SOLVEPNP_ITERATIVE;
+    cv::solvePnPRansac( list_points3d, points_left_t1, intrinsic_matrix, distCoeffs, rvec, translation_stereo,
+                        useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
+                        inliers, flags );
+
+    std::cout << "rvec : " <<rvec <<std::endl;
+    translation_stereo = -translation_stereo;
+    std::cout << "translation_stereo : " <<translation_stereo <<std::endl;
+
+    // Rodrigues(rvec,_R_matrix);
+
+    // ---------------
+    // estimation by minimizing the image projection error
+    // ---------------
 
 
     // Eigen::Matrix<double, 3, 4> proj0;
@@ -541,10 +543,10 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     // translation_stereo.at<double>(1) =  -trans_vector(1);
     // translation_stereo.at<double>(2) =  -trans_vector(2);
 
-    std::cout << "translation_stereo cv2: " << translation_stereo.t() << std::endl;
+    // std::cout << "translation_stereo cv2: " << translation_stereo.t() << std::endl;
 
-    // imshow( "Left camera", image_left_t0 );
-    // imshow( "Right camera", image_right_t0 );
+    // // imshow( "Left camera", image_left_t0 );
+    // // imshow( "Right camera", image_right_t0 );
 
 
     drawFeaturePoints(image_left_t1, current_feature_set);
@@ -639,7 +641,7 @@ void integrateOdometryScale(int frame_id, Mat& pose, Mat& Rpose, const Mat& rota
 
 void integrateOdometryStereo(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation_stereo)
 {
-    if ((translation_stereo.at<double>(2)<100)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) {
+    if ((translation_stereo.at<double>(2)<100)) {
 
 
       pose = pose + Rpose * translation_stereo;
