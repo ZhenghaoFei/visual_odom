@@ -338,7 +338,7 @@ Mat loadImageRight(int frame_id){
     return image;
 }
 
-void bucketingFeatures(Mat& image, std::vector<Point2f>& current_features, int bucket_size, int features_per_bucket){
+void bucketingFeatures(Mat& image, FeatureSet& current_features, int bucket_size, int features_per_bucket){
 // This function buckets features
 // image: only use for getting dimension of the image
 // bucket_size: bucket size in pixel is bucket_size*bucket_size
@@ -349,15 +349,54 @@ void bucketingFeatures(Mat& image, std::vector<Point2f>& current_features, int b
     int buckets_nums_height = image_height/bucket_size;
     int buckets_nums_width = image_width/bucket_size;
 
+    int buckets_number = buckets_nums_height * buckets_nums_width;
 
-    for (int buckets_idx_height = 0; buckets_idx_height < buckets_nums_height; buckets_idx_height++)
+    std::cout << "image_height " << image_height << std::endl;
+    std::cout << "image_width " << image_width << std::endl;
+
+    std::cout << "buckets_nums_height " << buckets_nums_height << std::endl;
+    std::cout << "buckets_nums_width " << buckets_nums_width << std::endl;
+
+    std::cout << "buckets number " << buckets_number << std::endl;
+
+    std::vector<Bucket> Buckets;
+
+    // initialize all the buckets
+    for (int buckets_idx_height = 0; buckets_idx_height <= buckets_nums_height; buckets_idx_height++)
     {
-      for (int buckets_idx_width = 0; buckets_idx_width < buckets_nums_width; buckets_idx_width++)
+      for (int buckets_idx_width = 0; buckets_idx_width <= buckets_nums_width; buckets_idx_width++)
       {
-        /* code */
+        Buckets.push_back(Bucket(features_per_bucket));
+      }
+    }
+    std::cout << "buckets number " << Buckets.size() << std::endl;
+
+    // bucket all current features into buckets by their location
+    int buckets_nums_height_idx, buckets_nums_width_idx, buckets_idx;
+    for (int i = 0; i < current_features.points.size(); ++i)
+    {
+      buckets_nums_height_idx = current_features.points[i].y/bucket_size;
+      buckets_nums_width_idx = current_features.points[i].x/bucket_size;
+      // std::cout << "buckets_nums_height_idx: " << buckets_nums_height_idx << ", " << buckets_nums_width_idx << std::endl;
+
+      buckets_idx = buckets_nums_height_idx*buckets_nums_width + buckets_nums_width_idx;
+      Buckets[buckets_idx].add_feature(current_features.points[i], current_features.ages[i]);
+
+    }
+
+    // get features back from buckets
+    current_features.clear();
+    for (int buckets_idx_height = 0; buckets_idx_height <= buckets_nums_height; buckets_idx_height++)
+    {
+      for (int buckets_idx_width = 0; buckets_idx_width <= buckets_nums_width; buckets_idx_width++)
+      {
+         buckets_idx = buckets_idx_height*buckets_nums_width + buckets_idx_width;
+         // std::cout << "buckets " << buckets_idx << " size " << Buckets[buckets_idx].size() << std::endl;
+         Buckets[buckets_idx].get_features(current_features);
       }
     }
 
+    std::cout << "current_features number after bucketing: " << current_features.size() << std::endl;
 
 }
 
@@ -413,17 +452,19 @@ void visualOdometry(int current_frame_id,
     // Feature detection using FAST
     // ----------------------------
     std::vector<Point2f>  points_left_t0, points_right_t0, points_left_t1, points_right_t1;   //vectors to store the coordinates of the feature points
+    int bucket_size = 50;
+    int features_per_bucket = 4;
 
     if (current_features.points.size() <= 2000)
     {
         std::cout << "Reinitialize feature set: "  << std::endl;
 
         // use all new features
-        featureDetection(image_left_t0, current_features.points);     
-        current_features.ages = std::vector<int>(current_features.points.size(), 0);
+        // featureDetection(image_left_t0, current_features.points);     
+        // current_features.ages = std::vector<int>(current_features.points.size(), 0);
 
         // append new features with old features
-        // appendNewFeatures(image_left_t0, current_features);   
+        appendNewFeatures(image_left_t0, current_features);   
     }   
 
     std::cout << "current feature set size: " << current_features.points.size() << std::endl;
@@ -432,13 +473,18 @@ void visualOdometry(int current_frame_id,
     // Feature tracking using KLT tracker and circular matching
     // --------------------------------------------------------
 
+
+    bucketingFeatures(image_left_t0, current_features, bucket_size, features_per_bucket);
     points_left_t0 = current_features.points;
+
 
     circularMatching(image_left_t0, image_right_t0, image_left_t1, image_right_t1,
                      points_left_t0, points_right_t0, points_left_t1, points_right_t1,
                      current_features);
 
     std::cout << "current_features.ages size: " << current_features.ages.size() << std::endl;
+
+
     current_features.points = points_left_t1;
 
     // std::cout << "current_features.ages " << std::endl;
@@ -447,6 +493,8 @@ void visualOdometry(int current_frame_id,
     //   std::cout   << current_features.ages[i] << ", "; 
     // }
     // std::cout << std::endl;
+
+
 
 
     // -----------------------------------------------------------
@@ -508,8 +556,8 @@ void visualOdometry(int current_frame_id,
 
 
 
-    // imshow( "Left camera", image_left_t0 );
-    // imshow( "Right camera", image_right_t0 );
+    // // imshow( "Left camera", image_left_t0 );
+    // // imshow( "Right camera", image_right_t0 );
 
 
     drawFeaturePoints(image_left_t1, current_features.points);

@@ -33,6 +33,8 @@ public:
     ~Bucket();
 
     void add_feature(cv::Point2f, int);
+    void get_features(FeatureSet&);
+
     int size();
     
 };
