@@ -401,10 +401,13 @@ void visualOdometry(int current_frame_id,
     if (current_features.size() <= 2000)
     {
         std::cout << "Reinitialize feature set: "  << std::endl;
-        featureDetection(image_left_t0, points_left_t0);     
-        current_features = points_left_t0;
 
-        // appendNewFeatures(image_left_t0, current_features, feature_ages);   
+        // use all new features
+        // featureDetection(image_left_t0, current_features);     
+        // feature_ages = std::vector<int>(current_features.size(), 0);
+
+        // append new features with old features
+        appendNewFeatures(image_left_t0, current_features, feature_ages);   
     }   
 
     std::cout << "current feature set size: " << current_features.size() << std::endl;
