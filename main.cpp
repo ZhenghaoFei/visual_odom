@@ -238,7 +238,8 @@ void featureTracking(Mat img_1, Mat img_2, std::vector<Point2f>& points1, std::v
 void deleteUnmatchFeaturesCircle(std::vector<Point2f>& points0, std::vector<Point2f>& points1,
                           std::vector<Point2f>& points2, std::vector<Point2f>& points3,
                           std::vector<uchar>& status0, std::vector<uchar>& status1,
-                          std::vector<uchar>& status2, std::vector<uchar>& status3){
+                          std::vector<uchar>& status2, std::vector<uchar>& status3,
+                          std::vector<int>& ages){
   //getting rid of points for which the KLT tracking failed or those who have gone outside the frame
   int indexCorrection = 0;
   for( int i=0; i<status3.size(); i++)
@@ -260,9 +261,14 @@ void deleteUnmatchFeaturesCircle(std::vector<Point2f>& points0, std::vector<Poin
               points1.erase (points1.begin() + (i - indexCorrection));
               points2.erase (points2.begin() + (i - indexCorrection));
               points3.erase (points3.begin() + (i - indexCorrection));
+              // ages.erase (ages.begin() + (i - indexCorrection));
 
               indexCorrection++;
         }
+        // else
+        // {
+        //   ages.ai(i) += 1;
+        // }
 
      }  
 }
@@ -270,7 +276,7 @@ void deleteUnmatchFeaturesCircle(std::vector<Point2f>& points0, std::vector<Poin
 void circularMatching(Mat img_l_0, Mat img_r_0, Mat img_l_1, Mat img_r_1,
                       std::vector<Point2f>& current_feature_set, std::vector<Point2f>& points_l_0, std::vector<Point2f>& points_r_0,
                       std::vector<Point2f>& points_l_1, std::vector<Point2f>& points_r_1,
-                      std::vector<uchar>& status)   { 
+                      std::vector<uchar>& status, std::vector<int>& ages)   { 
   
   //this function automatically gets rid of points for which tracking fails
 
@@ -283,7 +289,8 @@ void circularMatching(Mat img_l_0, Mat img_r_0, Mat img_l_1, Mat img_r_1,
   std::vector<uchar> status2;
   std::vector<uchar> status3;
 
-   
+  std::cout << "points : " << points_l_0.size() << " "<< points_r_0.size() << " "<< points_r_1.size() << " "<< points_l_1.size() << " "<<std::endl;
+
   calcOpticalFlowPyrLK(img_l_0, img_r_0, points_l_0, points_r_0, status0, err, winSize, 3, termcrit, 0, 0.001);
  
   calcOpticalFlowPyrLK(img_r_0, img_r_1, points_r_0, points_r_1, status1, err, winSize, 3, termcrit, 0, 0.001);
@@ -292,10 +299,10 @@ void circularMatching(Mat img_l_0, Mat img_r_0, Mat img_l_1, Mat img_r_1,
     
   calcOpticalFlowPyrLK(img_l_1, img_l_0, points_l_1, points_l_0, status3, err, winSize, 3, termcrit, 0, 0.001);
   
-
+  std::cout << "points : " << points_l_0.size() << " "<< points_r_0.size() << " "<< points_r_1.size() << " "<< points_l_1.size() << " "<<std::endl;
 
   deleteUnmatchFeaturesCircle(points_l_0, points_r_0, points_r_1, points_l_1,
-                        status0, status1, status2, status3);
+                        status0, status1, status2, status3, ages);
 
   std::cout << "points : " << points_l_0.size() << " "<< points_r_0.size() << " "<< points_r_1.size() << " "<< points_l_1.size() << " "<<std::endl;
 
@@ -334,7 +341,8 @@ void initializeFeatures(int current_frame_id,
                         Mat& image_left_t0,
                         Mat& image_right_t0,
                         std::vector<Point2f>& points_left_t0,
-                        std::vector<Point2f>& points_right_t0)
+                        std::vector<Point2f>& points_right_t0,
+                        std::vector<int>& feature_ages)
 {
 
     image_left_t0 = loadImageLeft(current_frame_id);
@@ -342,6 +350,11 @@ void initializeFeatures(int current_frame_id,
 
     featureDetection(image_left_t0, points_left_t0);        
     featureDetection(image_right_t0, points_right_t0);  
+
+    for(int i=0; i<points_left_t0.size(); i++)
+    {
+      feature_ages.push_back(0);
+    }
 
 }
 
@@ -351,9 +364,12 @@ void visualOdometry(int current_frame_id,
                     Mat& image_left_t0,
                     Mat& image_right_t0,
                     std::vector<Point2f>& current_feature_set, 
-                    std::vector<Point2f>& points_left_t0,
-                    std::vector<Point2f>& points_right_t0)
+                    std::vector<Point2f>& points_left_save,
+                    std::vector<Point2f>& points_right_save,
+                    std::vector<int>& feature_ages
+                    )
 {
+
 
 
     // ------------
@@ -362,32 +378,38 @@ void visualOdometry(int current_frame_id,
     Mat image_left_t1 = loadImageLeft(current_frame_id + 1);
     Mat image_right_t1 = loadImageRight(current_frame_id + 1);
 
-    // ------------
+    // ----------------------------
     // Feature detection using FAST
-    // ------------
-    std::vector<Point2f>  points_left_t1, points_right_t1;   //vectors to store the coordinates of the feature points
+    // ----------------------------
+    std::vector<Point2f>  points_left_t0, points_right_t0, points_left_t1, points_right_t1;   //vectors to store the coordinates of the feature points
+
+    points_left_t0 = points_left_save;
+    points_right_t0 = points_right_save;
+
     featureDetection(image_left_t1, points_left_t1);        
     featureDetection(image_right_t1, points_right_t1);     
 
+
     if (current_feature_set.size() <= 2000)
     {
-        std::cout << "Reinitializing feature set: "  << std::endl;
+        std::cout << "Reinitialize feature set: "  << std::endl;
         featureDetection(image_left_t0, points_left_t0);        
         current_feature_set = points_left_t0;
     }   
 
     std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
 
-    // ------------
+    // --------------------------------------------------------
     // Feature tracking using KLT tracker and circular matching
-    // ------------
+    // --------------------------------------------------------
     std::vector<uchar> status;
 
     points_left_t0 = current_feature_set;
+    std::vector<Point2f>  points_left_t1_temp, points_right_t1_temp;
 
     circularMatching(image_left_t0, image_right_t0, image_left_t1, image_right_t1,
                      current_feature_set, points_left_t0, points_right_t0, points_left_t1, points_right_t1,
-                     status);
+                     status, feature_ages);
 
     current_feature_set = points_left_t1;
 
@@ -441,23 +463,17 @@ void visualOdometry(int current_frame_id,
 
 
     // -----------------------------------------
-    // Prepare image and features for next frame
+    // Prepare image for next frame
     // -----------------------------------------
-
-    // points_left_t0 = points_left_t1;
-    points_right_t0 = points_right_t1;
+    points_left_save = points_left_t1;
+    points_right_save = points_right_t1;
     image_left_t0 = image_left_t1;
     image_right_t0 = image_right_t1;
 
 
 
-    // ----------------------
-    // Prepare for next frame
-    // ----------------------
-
     // imshow( "Left camera", image_left_t0 );
     // imshow( "Right camera", image_right_t0 );
-
 
 
     drawFeaturePoints(image_left_t1, current_feature_set);
@@ -495,7 +511,8 @@ void integrateOdometryScale(int frame_id, Mat& pose, Mat& Rpose, const Mat& rota
                         + (translation_stereo.at<double>(1))*(translation_stereo.at<double>(1))
                         + (translation_stereo.at<double>(2))*(translation_stereo.at<double>(2))) ;
 
-    if (scale<10) {
+    // if (scale<10) {
+    if ((scale>0.1)&&(translation_mono.at<double>(2) > translation_mono.at<double>(0)) && (translation_mono.at<double>(2) > translation_mono.at<double>(1))) {
 
 
       pose = pose +scale *  Rpose * translation_mono;
@@ -507,7 +524,7 @@ void integrateOdometryScale(int frame_id, Mat& pose, Mat& Rpose, const Mat& rota
 
 void integrateOdometryStereo(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation_stereo)
 {
-    if ((translation_stereo.at<double>(2)<100)) {
+    if ((translation_stereo.at<double>(2)<10)) {
 
 
       pose = pose + Rpose * translation_stereo;
@@ -562,10 +579,19 @@ int main(int argc, char const *argv[])
 
     std::vector<Point2f> current_feature_set;
     std::vector<Point2f> points_l, points_r;
+    std::vector<int> feature_ages;
 
     int init_frame_id = 0;
     Mat image_l, image_r;
-    initializeFeatures(init_frame_id, image_l, image_r, points_l, points_r);
+    initializeFeatures(init_frame_id, image_l, image_r, points_l, points_r, feature_ages);
+
+    // std::cout << "feature_ages " << std::endl;
+
+    // for(int i = 0; i < feature_ages.size(); i++)
+    // {
+    // std::cout   << feature_ages[i] << ", "; 
+
+    // }
 
     for (int frame_id = init_frame_id; frame_id < 1000; frame_id++)
     {
@@ -576,7 +602,8 @@ int main(int argc, char const *argv[])
                        projMatrl, projMatrr,
                        rotation, translation_mono, translation_stereo, 
                        image_l, image_r,
-                       current_feature_set, points_l, points_r);
+                       current_feature_set, points_l, points_r,
+                       feature_ages);
 
         // integrateOdometryMono(frame_id, pose, Rpose, rotation, translation_mono);
         // integrateOdometryScale(frame_id, pose, Rpose, rotation, translation_mono, translation_stereo);

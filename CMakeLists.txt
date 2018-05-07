@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project( FeatureDetection )
 find_package( OpenCV REQUIRED )
 set(EIGENPATH "/Users/holly/Programs/eigen/" )
+set (CMAKE_CXX_STANDARD 11)
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories(${EIGENPATH} )
