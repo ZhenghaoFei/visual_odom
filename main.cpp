@@ -391,9 +391,9 @@ void visualOdometry(int current_frame_id,
 
     current_feature_set = points_left_t1;
 
-    // ------------
+    // -----------------------------------------------------------
     // Rotation(R) estimation using Nister's Five Points Algorithm
-    // ------------
+    // -----------------------------------------------------------
     double focal = projMatrl.at<float>(0, 0);
     cv::Point2d principle_point(projMatrl.at<float>(0, 2), projMatrl.at<float>(1, 2));
     // std::cout << "focal " << focal << std::endl;
@@ -405,22 +405,25 @@ void visualOdometry(int current_frame_id,
     recoverPose(E, points_left_t1, points_left_t0, rotation, translation_mono, focal, principle_point, mask);
 
 
-    // ---------------
+    // ---------------------
     // Triangulate 3D Points
-    // ---------------
+    // ---------------------
     Mat points4D_t0;
 
     triangulatePoints( projMatrl,  projMatrr,  points_left_t0,  points_right_t0,  points4D_t0);
 
-    // -----------------
+    // ------------------------------------------------
     // Translation (t) estimation by use solvePnPRansac
-    // ------------------------
+    // ------------------------------------------------
     Mat points3D_t0;
     convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
     Mat distCoeffs = Mat::zeros(4, 1, CV_64FC1);  
     Mat inliers;  
     cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
-    Mat intrinsic_matrix = (Mat_<float>(3, 3) << 718.8560, 0., 607.1928, 0., 718.8560, 185.2157, 0.,  0., 1.);
+    Mat intrinsic_matrix = (Mat_<float>(3, 3) << projMatrl.at<float>(0, 0), projMatrl.at<float>(0, 1), projMatrl.at<float>(0, 2),
+                                                 projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
+                                                 projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
+
     int iterationsCount = 500;        // number of Ransac iterations.
     float reprojectionError = 2.0;    // maximum allowed distance to consider it an inlier.
     float confidence = 0.95;          // RANSAC successful confidence.
