@@ -337,9 +337,6 @@ void initializeFeatures(int current_frame_id,
                         std::vector<Point2f>& points_right_t0)
 {
 
-    // ------------
-    // load images
-    // ------------
     image_left_t0 = loadImageLeft(current_frame_id);
     image_right_t0 = loadImageRight(current_frame_id);
 
@@ -431,7 +428,7 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     float confidence = 0.95;          // RANSAC successful confidence.
     bool useExtrinsicGuess = false;
     int flags =SOLVEPNP_ITERATIVE;
-    
+
     cv::solvePnPRansac( points3D_t0, points_left_t1, intrinsic_matrix, distCoeffs, rvec, translation_stereo,
                         useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                         inliers, flags );
@@ -442,22 +439,23 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     // std::cout << "translation_stereo : " <<translation_stereo <<std::endl;
 
 
+    // -----------------------------------------
+    // Prepare image and features for next frame
+    // -----------------------------------------
 
-    // Prepare for next frame
-    points_left_t0 = points_left_t1;
+    // points_left_t0 = points_left_t1;
     points_right_t0 = points_right_t1;
     image_left_t0 = image_left_t1;
     image_right_t0 = image_right_t1;
 
 
-    // translation_stereo.at<double>(0) =  -trans_vector(0);
-    // translation_stereo.at<double>(1) =  -trans_vector(1);
-    // translation_stereo.at<double>(2) =  -trans_vector(2);
 
-    // std::cout << "translation_stereo cv2: " << translation_stereo.t() << std::endl;
+    // ----------------------
+    // Prepare for next frame
+    // ----------------------
 
-    // // imshow( "Left camera", image_left_t0 );
-    // // imshow( "Right camera", image_right_t0 );
+    // imshow( "Left camera", image_left_t0 );
+    // imshow( "Right camera", image_right_t0 );
 
 
 
@@ -465,51 +463,6 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     imshow("points ", image_left_t1 );
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // //-- Draw keypoints
-    // Mat img_keypoints_right_t0;
-
-    // std::cout << "keypoints size " << keypoints_right_t0.size() << std::endl;
-
-    // drawKeypoints( image_right_t0, keypoints_right_t0, img_keypoints_right_t0, Scalar::all(-1), DrawMatchesFlags::DEFAULT );
-    // //-- Show detected (drawn) keypoints
-    // imshow("Keypoints 1", img_keypoints_right_t0 );
-
-
-    // waitKey(0);
-    // return 0;
-
-
-
-    // if ( !image.data )
-    // {
-    //     printf("No image data \n");
-    //     return -1;
-    // }
-    // namedWindow("Display Image", WINDOW_AUTOSIZE );
-    // imshow("Display Image", image);
-
-    // waitKey(0);
 
 }
 
@@ -563,8 +516,14 @@ void integrateOdometryStereo(int frame_id, Mat& pose, Mat& Rpose, const Mat& rot
 
 }
 
-void display(Mat& trajectory, Mat& pose, Mat& pose_gt)
+void display(int frame_id, Mat& trajectory, Mat& pose, std::vector<Matrix>& pose_matrix_gt)
 {
+    Mat pose_gt = Mat::zeros(1, 3, CV_64F);
+    
+    pose_gt.at<double>(0) = pose_matrix_gt[frame_id].val[0][3];
+    pose_gt.at<double>(1) = pose_matrix_gt[frame_id].val[0][7];
+    pose_gt.at<double>(2) = pose_matrix_gt[frame_id].val[0][11];
+
     int x = int(pose.at<double>(0)) + 300;
     int y = int(pose.at<double>(2)) + 100;
     circle(trajectory, Point(x, y) ,1, CV_RGB(255,0,0), 2);
@@ -593,7 +552,6 @@ int main(int argc, char const *argv[])
 
     Mat pose = Mat::zeros(3, 1, CV_64F);
     Mat Rpose = Mat::eye(3, 3, CV_64F);
-    Mat pose_gt = Mat::zeros(1, 3, CV_64F);
 
     Mat trajectory = Mat::zeros(600, 600, CV_8UC3);
 
@@ -609,7 +567,6 @@ int main(int argc, char const *argv[])
 
         std::cout << std::endl;
         std::cout << "frame_id " << frame_id << std::endl;
-        // std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
 
         visualOdometry(frame_id, rotation, translation_mono, translation_stereo, 
                        image_l, image_r,
@@ -618,17 +575,11 @@ int main(int argc, char const *argv[])
         // integrateOdometryScale(frame_id, pose, Rpose, rotation, translation_mono, translation_stereo);
         integrateOdometryStereo(frame_id, pose, Rpose, rotation, translation_stereo);
 
-        // std::cout << "R" << std::endl;
-        // std::cout << rotation << std::endl;
-        // std::cout << "t" << std::endl;
-        // std::cout << translation << std::endl;
         std::cout << "Pose" << pose.t() << std::endl;
 
-        pose_gt.at<double>(0) = pose_matrix_gt[frame_id].val[0][3];
-        pose_gt.at<double>(1) = pose_matrix_gt[frame_id].val[0][7];
-        pose_gt.at<double>(2) = pose_matrix_gt[frame_id].val[0][11];
+
  
-        display(trajectory, pose, pose_gt);
+        display(frame_id, trajectory, pose, pose_matrix_gt);
 
 
     }
