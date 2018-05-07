@@ -608,8 +608,13 @@ void integrateOdometryScale(int frame_id, Mat& pose, Mat& Rpose, const Mat& rota
 
 void integrateOdometryStereo(int frame_id, Mat& pose, Mat& Rpose, const Mat& rotation, const Mat& translation_stereo)
 {
-    if ((translation_stereo.at<double>(2)<10)) {
+    // if ((translation_stereo.at<double>(2)<10)) {
 
+    double scale = sqrt((translation_stereo.at<double>(0))*(translation_stereo.at<double>(0)) 
+                        + (translation_stereo.at<double>(1))*(translation_stereo.at<double>(1))
+                        + (translation_stereo.at<double>(2))*(translation_stereo.at<double>(2))) ;
+    
+    if ((scale>0.1)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) {
 
       pose = pose + Rpose * translation_stereo;
       Rpose = rotation * Rpose;
