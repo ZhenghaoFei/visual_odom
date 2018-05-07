@@ -358,29 +358,21 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
 
 
     // ------------
-    // load images
+    // Load images
     // ------------
-    // Mat image_left_t0 = loadImageLeft(current_frame_id);
-    // Mat image_right_t0 = loadImageRight(current_frame_id);
-
     Mat image_left_t1 = loadImageLeft(current_frame_id + 1);
     Mat image_right_t1 = loadImageRight(current_frame_id + 1);
 
     // ------------
-    // feature detection using FAST
+    // Feature detection using FAST
     // ------------
-    std::vector<Point2f>  points_left_t1, points_right_t1;        //vectors to store the coordinates of the feature points
-    
-    // featureDetection(image_left_t0, points_left_t0);        
-    // featureDetection(image_right_t0, points_right_t0);  
-
+    std::vector<Point2f>  points_left_t1, points_right_t1;   //vectors to store the coordinates of the feature points
     featureDetection(image_left_t1, points_left_t1);        
     featureDetection(image_right_t1, points_right_t1);     
 
     if (current_feature_set.size() <= 2000)
     {
-        std::cout << "reinitialize feature set: "  << std::endl;
-        std::cout << "points_left_t0 feature size : "  << points_left_t0.size() << std::endl;
+        std::cout << "Reinitializing feature set: "  << std::endl;
         featureDetection(image_left_t0, points_left_t0);        
         current_feature_set = points_left_t0;
     }   
@@ -388,7 +380,7 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     std::cout << "current feature set size: " << current_feature_set.size() << std::endl;
 
     // ------------
-    // feature tracking using KLT tracker and circular matching
+    // Feature tracking using KLT tracker and circular matching
     // ------------
     std::vector<uchar> status;
 
@@ -399,8 +391,6 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
                      status);
 
     current_feature_set = points_left_t1;
-
-
 
     // ------------
     // Rotation(R) estimation using Nister's Five Points Algorithm
@@ -430,45 +420,19 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     // -----------------
     // Translation (t) estimation by use solvePnPRansac
     // ------------------------
-
-    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen;
-    cv2eigen(points4D_t0, points4D_t0_eigen);
-
-
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> points4D_t0_eigen_d = points4D_t0_eigen.cast <double> ();
-
-    for (int i = 0; i < points4D_t0_eigen_d.cols(); i++)
-    {
-        points4D_t0_eigen_d(0, i) = points4D_t0_eigen_d(0, i)/points4D_t0_eigen_d(3, i);
-        points4D_t0_eigen_d(1, i) = points4D_t0_eigen_d(1, i)/points4D_t0_eigen_d(3, i);
-        points4D_t0_eigen_d(2, i) = points4D_t0_eigen_d(2, i)/points4D_t0_eigen_d(3, i);
-        points4D_t0_eigen_d(3, i) = 1.;
-
-    }
-
-    // std::cout << "points4D : " << points4D_t0_eigen_d.cols() <<std::endl;
-    // std::cout << "points4D[0] : " << points4D_t0_eigen_d(0,0) <<std::endl;
-
-    std::vector<cv::Point3f> list_points3d;
-    for(int i = 0; i < points4D_t0_eigen_d.cols(); ++i)
-    {
-        list_points3d.push_back(Point3f(points4D_t0_eigen_d(0,i), points4D_t0_eigen_d(1,i), points4D_t0_eigen_d(2,i)));                                      // add 3D point
-    }
-
-
-
+    Mat points3D_t0;
+    convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
     Mat distCoeffs = Mat::zeros(4, 1, CV_64FC1);  
     Mat inliers;  
-
     cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
-    // cv::Mat tvec = cv::Mat::zeros(3, 1, CV_64FC1);
     Mat intrinsic_matrix = (Mat_<float>(3, 3) << 718.8560, 0., 607.1928, 0., 718.8560, 185.2157, 0.,  0., 1.);
     int iterationsCount = 500;        // number of Ransac iterations.
     float reprojectionError = 2.0;    // maximum allowed distance to consider it an inlier.
     float confidence = 0.95;          // RANSAC successful confidence.
     bool useExtrinsicGuess = false;
     int flags =SOLVEPNP_ITERATIVE;
-    cv::solvePnPRansac( list_points3d, points_left_t1, intrinsic_matrix, distCoeffs, rvec, translation_stereo,
+    
+    cv::solvePnPRansac( points3D_t0, points_left_t1, intrinsic_matrix, distCoeffs, rvec, translation_stereo,
                         useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                         inliers, flags );
 
