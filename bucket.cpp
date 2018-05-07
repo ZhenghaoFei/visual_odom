@@ -16,18 +16,17 @@
 #include <unsupported/Eigen/NumericalDiff>
 #include <opencv2/core/eigen.hpp>
 
-class feature
+class Bucket
 {
-    int uid;
-    int age;
-    cv::Point2f position;
-    double strength;
+    int id;
+    int size;
+
     int feature_class;
     int initial_descriptor;
 
 public:
-    feature();
+    Bucket();
 
-    ~feature();
+    ~Bucket();
     
 };

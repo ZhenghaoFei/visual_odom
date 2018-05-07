@@ -20,6 +20,7 @@
 #include <opencv2/core/eigen.hpp>
 
 #include "evaluate_odometry.h"
+#include "feature_set.h"
 
 using Eigen::MatrixXd;
 using namespace cv;
@@ -241,13 +242,12 @@ void deleteUnmatchFeaturesCircle(std::vector<Point2f>& points0, std::vector<Poin
                           std::vector<uchar>& status2, std::vector<uchar>& status3,
                           std::vector<int>& ages){
   //getting rid of points for which the KLT tracking failed or those who have gone outside the frame
-  int indexCorrection = 0;
   for (int i = 0; i < ages.size(); ++i)
   {
      ages[i] += 1;
   }
 
-
+  int indexCorrection = 0;
   for( int i=0; i<status3.size(); i++)
      {  Point2f pt0 = points0.at(i- indexCorrection);
         Point2f pt1 = points1.at(i- indexCorrection);
@@ -270,18 +270,14 @@ void deleteUnmatchFeaturesCircle(std::vector<Point2f>& points0, std::vector<Poin
           ages.erase (ages.begin() + (i - indexCorrection));
           indexCorrection++;
         }
-        // else
-        // {
-        //   ages[i] += 1;
-        // }
 
      }  
 }
 
 void circularMatching(Mat img_l_0, Mat img_r_0, Mat img_l_1, Mat img_r_1,
-                      std::vector<Point2f>& current_features, std::vector<Point2f>& points_l_0, std::vector<Point2f>& points_r_0,
+                      std::vector<Point2f>& points_l_0, std::vector<Point2f>& points_r_0,
                       std::vector<Point2f>& points_l_1, std::vector<Point2f>& points_r_1,
-                      std::vector<uchar>& status, std::vector<int>& ages)   { 
+                      FeatureSet& current_features) { 
   
   //this function automatically gets rid of points for which tracking fails
 
@@ -306,7 +302,7 @@ void circularMatching(Mat img_l_0, Mat img_r_0, Mat img_l_1, Mat img_r_1,
   std::cout << "points : " << points_l_0.size() << " "<< points_r_0.size() << " "<< points_r_1.size() << " "<< points_l_1.size() << " "<<std::endl;
 
   deleteUnmatchFeaturesCircle(points_l_0, points_r_0, points_r_1, points_l_1,
-                        status0, status1, status2, status3, ages);
+                        status0, status1, status2, status3, current_features.ages);
 
   std::cout << "points : " << points_l_0.size() << " "<< points_r_0.size() << " "<< points_r_1.size() << " "<< points_l_1.size() << " "<<std::endl;
 
@@ -341,34 +337,55 @@ Mat loadImageRight(int frame_id){
     return image;
 }
 
+void bucketingFeatures(Mat& image, std::vector<Point2f>& current_features, int bucket_size, int features_per_bucket){
+// This function buckets features
+// image: only use for getting dimension of the image
+// bucket_size: bucket size in pixel is bucket_size*bucket_size
+// features_per_bucket: number of selected features per bucket
+    int image_height = image.rows;
+    int image_width = image.cols;
+
+    int buckets_nums_height = image_height/bucket_size;
+    int buckets_nums_width = image_width/bucket_size;
+
+
+    for (int buckets_idx_height = 0; buckets_idx_height < buckets_nums_height; buckets_idx_height++)
+    {
+      for (int buckets_idx_width = 0; buckets_idx_width < buckets_nums_width; buckets_idx_width++)
+      {
+        /* code */
+      }
+    }
+
+
+}
+
 void initializeImagesFeatures(int current_frame_id, 
                         Mat& image_left_t0, Mat& image_right_t0,
-                        std::vector<Point2f>& points_left_t0,
-                        std::vector<int>& feature_ages)
-{
+                        FeatureSet& features){
 
     image_left_t0 = loadImageLeft(current_frame_id);
     image_right_t0 = loadImageRight(current_frame_id);
 
-    featureDetection(image_left_t0, points_left_t0);        
+    featureDetection(image_left_t0, features.points);        
 
-    for(int i=0; i<points_left_t0.size(); i++)
+    for(int i = 0; i < features.points.size(); i++)
     {
-      feature_ages.push_back(0);
+      features.ages.push_back(0);
     }
 
 }
 
-void appendNewFeatures(Mat& image, std::vector<Point2f>& current_features, std::vector<int>& feature_ages){
+void appendNewFeatures(Mat& image, FeatureSet& current_features){
     
     std::vector<Point2f>  points_new;
     featureDetection(image, points_new);
 
 
-    current_features.insert(current_features.end(), points_new.begin(), points_new.end());
+    current_features.points.insert(current_features.points.end(), points_new.begin(), points_new.end());
 
     std::vector<int>  ages_new(points_new.size(), 0);
-    feature_ages.insert(feature_ages.end(), ages_new.begin(), ages_new.end());
+    current_features.ages.insert(current_features.ages.end(), ages_new.begin(), ages_new.end());
 
 
 }
@@ -378,14 +395,12 @@ void visualOdometry(int current_frame_id,
                     Mat& rotation, Mat& translation_mono, Mat& translation_stereo, 
                     Mat& image_left_t0,
                     Mat& image_right_t0,
-                    std::vector<Point2f>& current_features, 
+                    FeatureSet& current_features
+                    // std::vector<Point2f>& current_features, 
                     // std::vector<Point2f>& points_left_save,
                     // std::vector<Point2f>& points_right_save,
-                    std::vector<int>& feature_ages
-                    )
-{
-
-
+                    // std::vector<int>& feature_ages
+                    ){
 
     // ------------
     // Load images
@@ -398,41 +413,40 @@ void visualOdometry(int current_frame_id,
     // ----------------------------
     std::vector<Point2f>  points_left_t0, points_right_t0, points_left_t1, points_right_t1;   //vectors to store the coordinates of the feature points
 
-    if (current_features.size() <= 2000)
+    if (current_features.points.size() <= 2000)
     {
         std::cout << "Reinitialize feature set: "  << std::endl;
 
         // use all new features
-        // featureDetection(image_left_t0, current_features);     
-        // feature_ages = std::vector<int>(current_features.size(), 0);
+        featureDetection(image_left_t0, current_features.points);     
+        current_features.ages = std::vector<int>(current_features.points.size(), 0);
 
         // append new features with old features
-        appendNewFeatures(image_left_t0, current_features, feature_ages);   
+        // appendNewFeatures(image_left_t0, current_features);   
     }   
 
-    std::cout << "current feature set size: " << current_features.size() << std::endl;
+    std::cout << "current feature set size: " << current_features.points.size() << std::endl;
 
     // --------------------------------------------------------
     // Feature tracking using KLT tracker and circular matching
     // --------------------------------------------------------
-    std::vector<uchar> status;
 
-    points_left_t0 = current_features;
+    points_left_t0 = current_features.points;
 
     circularMatching(image_left_t0, image_right_t0, image_left_t1, image_right_t1,
-                     current_features, points_left_t0, points_right_t0, points_left_t1, points_right_t1,
-                     status, feature_ages);
+                     points_left_t0, points_right_t0, points_left_t1, points_right_t1,
+                     current_features);
 
-    std::cout << "feature_ages size: " << feature_ages.size() << std::endl;
+    std::cout << "current_features.ages size: " << current_features.ages.size() << std::endl;
+    current_features.points = points_left_t1;
 
-    // std::cout << "feature_ages " << std::endl;
-    // for(int i = 0; i < feature_ages.size(); i++)
+    // std::cout << "current_features.ages " << std::endl;
+    // for(int i = 0; i < current_features.ages.size(); i++)
     // {
-    //   std::cout   << feature_ages[i] << ", "; 
+    //   std::cout   << current_features.ages[i] << ", "; 
     // }
     // std::cout << std::endl;
 
-    current_features = points_left_t1;
 
     // -----------------------------------------------------------
     // Rotation(R) estimation using Nister's Five Points Algorithm
@@ -497,7 +511,7 @@ void visualOdometry(int current_frame_id,
     // imshow( "Right camera", image_right_t0 );
 
 
-    drawFeaturePoints(image_left_t1, current_features);
+    drawFeaturePoints(image_left_t1, current_features.points);
     imshow("points ", image_left_t1 );
 
 
@@ -598,12 +612,11 @@ int main(int argc, char const *argv[])
 
     Mat trajectory = Mat::zeros(600, 600, CV_8UC3);
 
-    std::vector<Point2f> current_features;
-    std::vector<int> feature_ages;
+    FeatureSet current_features;
 
     int init_frame_id = 0;
     Mat image_l, image_r;
-    initializeImagesFeatures(init_frame_id, image_l, image_r, current_features, feature_ages);
+    initializeImagesFeatures(init_frame_id, image_l, image_r, current_features);
 
 
 
@@ -616,8 +629,7 @@ int main(int argc, char const *argv[])
                        projMatrl, projMatrr,
                        rotation, translation_mono, translation_stereo, 
                        image_l, image_r,
-                       current_features,
-                       feature_ages);
+                       current_features);
 
         // integrateOdometryMono(frame_id, pose, Rpose, rotation, translation_mono);
         // integrateOdometryScale(frame_id, pose, Rpose, rotation, translation_mono, translation_stereo);
