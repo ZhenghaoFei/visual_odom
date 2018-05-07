@@ -452,8 +452,7 @@ void visualOdometry(int current_frame_id,
     // Feature detection using FAST
     // ----------------------------
     std::vector<Point2f>  points_left_t0, points_right_t0, points_left_t1, points_right_t1;   //vectors to store the coordinates of the feature points
-    int bucket_size = 50;
-    int features_per_bucket = 4;
+
 
     if (current_features.points.size() <= 2000)
     {
@@ -472,9 +471,18 @@ void visualOdometry(int current_frame_id,
     // --------------------------------------------------------
     // Feature tracking using KLT tracker and circular matching
     // --------------------------------------------------------
-
-
+    int bucket_size = 50;
+    int features_per_bucket = 4;
     bucketingFeatures(image_left_t0, current_features, bucket_size, features_per_bucket);
+
+    // std::cout << "current_features.ages " << std::endl;
+    // for(int i = 0; i < current_features.ages.size(); i++)
+    // {
+    //   std::cout   << current_features.ages[i] << ", "; 
+    // }
+    // std::cout << std::endl;
+
+
     points_left_t0 = current_features.points;
 
 
@@ -487,12 +495,6 @@ void visualOdometry(int current_frame_id,
 
     current_features.points = points_left_t1;
 
-    // std::cout << "current_features.ages " << std::endl;
-    // for(int i = 0; i < current_features.ages.size(); i++)
-    // {
-    //   std::cout   << current_features.ages[i] << ", "; 
-    // }
-    // std::cout << std::endl;
 
 
 
@@ -502,8 +504,6 @@ void visualOdometry(int current_frame_id,
     // -----------------------------------------------------------
     double focal = projMatrl.at<float>(0, 0);
     cv::Point2d principle_point(projMatrl.at<float>(0, 2), projMatrl.at<float>(1, 2));
-    // std::cout << "focal " << focal << std::endl;
-    // std::cout << "principle_point: " << principle_point << std::endl;
 
     //recovering the pose and the essential matrix
     Mat E, mask;
@@ -549,12 +549,13 @@ void visualOdometry(int current_frame_id,
     // -----------------------------------------
     // Prepare image for next frame
     // -----------------------------------------
-    // points_left_save = points_left_t1;
-    // points_right_save = points_right_t1;
     image_left_t0 = image_left_t1;
     image_right_t0 = image_right_t1;
 
 
+    // -----------------------------------------
+    // Display
+    // -----------------------------------------
 
     // // imshow( "Left camera", image_left_t0 );
     // // imshow( "Right camera", image_right_t0 );
@@ -613,7 +614,7 @@ void integrateOdometryStereo(int frame_id, Mat& pose, Mat& Rpose, const Mat& rot
     double scale = sqrt((translation_stereo.at<double>(0))*(translation_stereo.at<double>(0)) 
                         + (translation_stereo.at<double>(1))*(translation_stereo.at<double>(1))
                         + (translation_stereo.at<double>(2))*(translation_stereo.at<double>(2))) ;
-    
+
     if ((scale>0.1)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) {
 
       pose = pose + Rpose * translation_stereo;

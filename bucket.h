@@ -27,6 +27,7 @@ class Bucket
 public:
     int id;
     int max_size;
+
     FeatureSet features;
 
     Bucket(int);
