@@ -18,8 +18,7 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 #include <unsupported/Eigen/NumericalDiff>
 #include <opencv2/core/eigen.hpp>
-
-#include "feature_set.h"
+#include "feature.h"
 
 class Bucket
 {
