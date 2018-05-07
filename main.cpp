@@ -345,7 +345,9 @@ void initializeFeatures(int current_frame_id,
 
 }
 
-void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, Mat& translation_stereo, 
+void visualOdometry(int current_frame_id,
+                    Mat& projMatrl, Mat& projMatrr,
+                    Mat& rotation, Mat& translation_mono, Mat& translation_stereo, 
                     Mat& image_left_t0,
                     Mat& image_right_t0,
                     std::vector<Point2f>& current_feature_set, 
@@ -392,11 +394,10 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     // ------------
     // Rotation(R) estimation using Nister's Five Points Algorithm
     // ------------
-
-    //TODO: add a fucntion to load these values directly from KITTI's calib files
-    // WARNING: different sequences in the KITTI VO dataset have different intrinsic/extrinsic parameters
-    double focal = 718.8560;
-    cv::Point2d principle_point(607.1928, 185.2157);
+    double focal = projMatrl.at<float>(0, 0);
+    cv::Point2d principle_point(projMatrl.at<float>(0, 2), projMatrl.at<float>(1, 2));
+    // std::cout << "focal " << focal << std::endl;
+    // std::cout << "principle_point: " << principle_point << std::endl;
 
     //recovering the pose and the essential matrix
     Mat E, mask;
@@ -409,10 +410,7 @@ void visualOdometry(int current_frame_id, Mat& rotation, Mat& translation_mono, 
     // ---------------
     Mat points4D_t0;
 
-    Mat projMatr1 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
-    Mat projMatr2 = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
-
-    triangulatePoints( projMatr1,  projMatr2,  points_left_t0,  points_right_t0,  points4D_t0);
+    triangulatePoints( projMatrl,  projMatrr,  points_left_t0,  points_right_t0,  points4D_t0);
 
     // -----------------
     // Translation (t) estimation by use solvePnPRansac
@@ -544,6 +542,10 @@ int main(int argc, char const *argv[])
     char filename_pose[200];
     sprintf(filename_pose, "/Users/holly/Downloads/KITTI/poses/00.txt");
     std::vector<Matrix> pose_matrix_gt = loadPoses(filename_pose);
+    Mat projMatrl = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
+    Mat projMatrr = (Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
+
+
 
     // Mat rotation, translation;
     Mat rotation = Mat::eye(3, 3, CV_64F);
@@ -565,19 +567,19 @@ int main(int argc, char const *argv[])
     for (int frame_id = init_frame_id; frame_id < 1000; frame_id++)
     {
 
-        std::cout << std::endl;
-        std::cout << "frame_id " << frame_id << std::endl;
+        std::cout << std::endl << "frame_id " << frame_id << std::endl;
 
-        visualOdometry(frame_id, rotation, translation_mono, translation_stereo, 
+        visualOdometry(frame_id, 
+                       projMatrl, projMatrr,
+                       rotation, translation_mono, translation_stereo, 
                        image_l, image_r,
                        current_feature_set, points_l, points_r);
+
         // integrateOdometryMono(frame_id, pose, Rpose, rotation, translation_mono);
         // integrateOdometryScale(frame_id, pose, Rpose, rotation, translation_mono, translation_stereo);
         integrateOdometryStereo(frame_id, pose, Rpose, rotation, translation_stereo);
 
         std::cout << "Pose" << pose.t() << std::endl;
-
-
  
         display(frame_id, trajectory, pose, pose_matrix_gt);
 
