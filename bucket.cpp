@@ -1,32 +1,20 @@
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
+
+#include "bucket.h"
 
 
-#include <iostream>
-#include <ctype.h>
-#include <algorithm>
-#include <iterator>
-#include <vector>
-#include <ctime>
-#include <sstream>
-#include <fstream>
-#include <string>
-#include <Eigen/Dense>
-#include <unsupported/Eigen/NonLinearOptimization>
-#include <unsupported/Eigen/NumericalDiff>
-#include <opencv2/core/eigen.hpp>
+Bucket::Bucket(int size){
+    max_size = size;
+}
 
-class Bucket
-{
-    int id;
-    int size;
+int Bucket::size(){
+    return features.points.size();
+}
 
-    int feature_class;
-    int initial_descriptor;
 
-public:
-    Bucket();
-
-    ~Bucket();
-    
-};
+void Bucket::add_feature(cv::Point2f point, int age){
+    if (size()<max_size)
+    {
+        features.points.push_back(point);
+        features.ages.push_back(age);
+    }
+}

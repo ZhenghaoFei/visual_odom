@@ -21,6 +21,7 @@
 
 #include "evaluate_odometry.h"
 #include "feature_set.h"
+#include "bucket.h"
 
 using Eigen::MatrixXd;
 using namespace cv;
