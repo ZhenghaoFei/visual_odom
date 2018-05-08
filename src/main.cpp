@@ -43,14 +43,18 @@ void visualOdometry(int current_frame_id, std::string filepath,
     // ----------------------------
     std::vector<cv::Point2f>  points_left_t0, points_right_t0, points_left_t1, points_right_t1;   //vectors to store the coordinates of the feature points
 
-    // use all new features
-    // featureDetectionFast(image_left_t0, current_features.points);     
-    // current_features.ages = std::vector<int>(current_features.points.size(), 0);
+    if (current_features.size() < 2000)
+    {
+        // use all new features
+        // featureDetectionFast(image_left_t0, current_features.points);     
+        // current_features.ages = std::vector<int>(current_features.points.size(), 0);
 
-    // append new features with old features
-    appendNewFeatures(image_left_t0, current_features);   
+        // append new features with old features
+        appendNewFeatures(image_left_t0, current_features);   
 
-    std::cout << "Current feature set size: " << current_features.points.size() << std::endl;
+        std::cout << "Current feature set size: " << current_features.points.size() << std::endl;
+    }
+
 
     // --------------------------------------------------------
     // Feature tracking using KLT tracker, bucketing and circular matching

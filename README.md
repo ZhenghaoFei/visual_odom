@@ -4,6 +4,10 @@ This repository is C++ OpenCV implementation of SOFT (Stereo Odometry based on c
 
 Original Paper: https://lamor.fer.hr/images/50020776/Cvisic2017.pdf
 
+[Features]:https://github.com/ZhenghaoFei/visual_odom/tree/master/images/features.png
+
+[Trajectory]:https://github.com/ZhenghaoFei/visual_odom/tree/master/images/trajectory.png
+
 ### Requirements
 [OpenCV 3.0](https://opencv.org/)
 
