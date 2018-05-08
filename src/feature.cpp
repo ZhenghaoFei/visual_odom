@@ -180,7 +180,7 @@ void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_
 
 void appendNewFeatures(cv::Mat& image, FeatureSet& current_features){
     std::vector<cv::Point2f>  points_new;
-    featureDetectionFast(image, points_new);
+    featureDetectionGoodFeaturesToTrack(image, points_new);
     current_features.points.insert(current_features.points.end(), points_new.begin(), points_new.end());
     std::vector<int>  ages_new(points_new.size(), 0);
     current_features.ages.insert(current_features.ages.end(), ages_new.begin(), ages_new.end());

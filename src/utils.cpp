@@ -82,7 +82,7 @@ void initializeImagesFeatures(int current_frame_id, std::string filepath,
     image_left_t0 = loadImageLeft(current_frame_id, filepath);
     image_right_t0 = loadImageRight(current_frame_id, filepath);
 
-    featureDetectionFast(image_left_t0, features.points);        
+    featureDetectionGoodFeaturesToTrack(image_left_t0, features.points);        
 
     for(int i = 0; i < features.points.size(); i++)
     {
