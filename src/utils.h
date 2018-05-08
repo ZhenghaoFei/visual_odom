@@ -23,11 +23,11 @@
 
 void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points);
 
-void initializeImagesFeatures(int current_frame_id, cv::Mat& image_left_t0, cv::Mat& image_right_t0, FeatureSet& features);
+void initializeImagesFeatures(int current_frame_id, std::string filepath, cv::Mat& image_left_t0, cv::Mat& image_right_t0, FeatureSet& features);
 
-cv::Mat loadImageLeft(int frame_id);
+cv::Mat loadImageLeft(int frame_id, std::string filepath);
 
-cv::Mat loadImageRight(int frame_id);
+cv::Mat loadImageRight(int frame_id, std::string filepath);
 
 double getAbsoluteScale(int frame_id);
 

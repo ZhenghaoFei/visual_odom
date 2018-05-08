@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
 find_package( OpenCV REQUIRED )
-set(EIGENPATH "/Users/holly/Programs/eigen/" )
-set (CMAKE_CXX_STANDARD 11)
 
 add_subdirectory(evaluate)
 

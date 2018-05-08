@@ -47,18 +47,27 @@ void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points){
 }
 
 
-cv::Mat loadImageLeft(int frame_id){
-    char filename[200];
-    sprintf(filename, "/Users/holly/Downloads/KITTI/sequences/00/image_0/%06d.png", frame_id);
+cv::Mat loadImageLeft(int frame_id, std::string filepath){
+    char file[200];
+    // sprintf(filename, "/Users/holly/Downloads/KITTI/sequences/00/image_0/%06d.png", frame_id);
+    sprintf(file, "/image_0/%06d.png", frame_id);
+
+    std::string filename = filepath + std::string(file);
+
     cv::Mat image = cv::imread(filename);
     cvtColor(image, image, cv::COLOR_BGR2GRAY);
 
     return image;
 }
 
-cv::Mat loadImageRight(int frame_id){
-    char filename[200];
-    sprintf(filename, "/Users/holly/Downloads/KITTI/sequences/00/image_1/%06d.png", frame_id);
+cv::Mat loadImageRight(int frame_id, std::string filepath){
+    char file[200];
+    // sprintf(filename, "/Users/holly/Downloads/KITTI/sequences/00/image_1/%06d.png", frame_id);
+    // sprintf(filename, filepath+"/image_1/%06d.png", frame_id);
+    sprintf(file, "/image_1/%06d.png", frame_id);
+
+    std::string filename = filepath + std::string(file);
+
     cv::Mat image = cv::imread(filename);
     cvtColor(image, image, cv::COLOR_BGR2GRAY);
 
@@ -66,12 +75,12 @@ cv::Mat loadImageRight(int frame_id){
 }
 
 
-void initializeImagesFeatures(int current_frame_id, 
+void initializeImagesFeatures(int current_frame_id, std::string filepath,
                         cv::Mat& image_left_t0, cv::Mat& image_right_t0,
                         FeatureSet& features){
 
-    image_left_t0 = loadImageLeft(current_frame_id);
-    image_right_t0 = loadImageRight(current_frame_id);
+    image_left_t0 = loadImageLeft(current_frame_id, filepath);
+    image_right_t0 = loadImageRight(current_frame_id, filepath);
 
     featureDetectionFast(image_left_t0, features.points);        
 

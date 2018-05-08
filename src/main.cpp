@@ -25,7 +25,7 @@
 #include "utils.h"
 #include "evaluate_odometry.h"
 
-void visualOdometry(int current_frame_id,
+void visualOdometry(int current_frame_id, std::string filepath,
                     cv::Mat& projMatrl, cv::Mat& projMatrr,
                     cv::Mat& rotation, cv::Mat& translation_mono, cv::Mat& translation_stereo, 
                     cv::Mat& image_left_t0,
@@ -35,8 +35,8 @@ void visualOdometry(int current_frame_id,
     // ------------
     // Load images
     // ------------
-    cv::Mat image_left_t1 = loadImageLeft(current_frame_id + 1);
-    cv::Mat image_right_t1 = loadImageRight(current_frame_id + 1);
+    cv::Mat image_left_t1 = loadImageLeft(current_frame_id + 1, filepath);
+    cv::Mat image_right_t1 = loadImageRight(current_frame_id + 1, filepath);
 
     // ----------------------------
     // Feature detection using FAST
@@ -139,6 +139,7 @@ int main(int argc, char const *argv[])
     // -----------------------------------------
     char filename_pose[200];
     sprintf(filename_pose, "/Users/holly/Downloads/KITTI/poses/00.txt");
+    std::string filepath = "/Users/holly/Downloads/KITTI/sequences/00/";
     std::vector<Matrix> pose_matrix_gt = loadPoses(filename_pose);
     cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
     cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
@@ -164,7 +165,7 @@ int main(int argc, char const *argv[])
     // -----------------------------------------
     // Run visual odometry
     // -----------------------------------------
-    initializeImagesFeatures(init_frame_id, image_l, image_r, current_features);
+    initializeImagesFeatures(init_frame_id, filepath, image_l, image_r, current_features);
 
     clock_t tic = clock();
 
@@ -173,7 +174,7 @@ int main(int argc, char const *argv[])
 
         std::cout << std::endl << "frame_id " << frame_id << std::endl;
 
-        visualOdometry(frame_id, 
+        visualOdometry(frame_id, filepath,
                        projMatrl, projMatrr,
                        rotation, translation_mono, translation_stereo, 
                        image_l, image_r,
