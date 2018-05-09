@@ -12,10 +12,13 @@ include_directories(evaluate)
 add_library(feature STATIC "feature.cpp")
 add_library(bucket STATIC "bucket.cpp")
 add_library(utils STATIC "utils.cpp")
+add_library(visualOdometry STATIC "visualOdometry.cpp")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 message(${PROJECT_SOURCE_DIR})
 
 add_executable( run main.cpp )
 target_link_libraries( utils evaluate_odometry)
-target_link_libraries( run ${OpenCV_LIBS} bucket feature utils)
+target_link_libraries( visualOdometry bucket feature)
+
+target_link_libraries( run ${OpenCV_LIBS} bucket feature utils visualOdometry)
