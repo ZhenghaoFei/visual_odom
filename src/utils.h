@@ -31,7 +31,7 @@ cv::Mat loadImageRight(int frame_id, std::string filepath);
 
 double getAbsoluteScale(int frame_id);
 
-void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matrix>& pose_matrix_gt, float fps);
+void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matrix>& pose_matrix_gt, float fps, bool showgt);
 
 void integrateOdometryMono(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, 
                            const cv::Mat& translation_mono);

@@ -50,7 +50,7 @@ void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points){
 cv::Mat loadImageLeft(int frame_id, std::string filepath){
     char file[200];
     // sprintf(filename, "/Users/holly/Downloads/KITTI/sequences/00/image_0/%06d.png", frame_id);
-    sprintf(file, "/image_0/%06d.png", frame_id);
+    sprintf(file, "/image_0/%010d.png", frame_id);
 
     std::string filename = filepath + std::string(file);
 
@@ -62,9 +62,9 @@ cv::Mat loadImageLeft(int frame_id, std::string filepath){
 
 cv::Mat loadImageRight(int frame_id, std::string filepath){
     char file[200];
-    // sprintf(filename, "/Users/holly/Downloads/KITTI/sequences/00/image_1/%06d.png", frame_id);
-    // sprintf(filename, filepath+"/image_1/%06d.png", frame_id);
-    sprintf(file, "/image_1/%06d.png", frame_id);
+    // sprintf(filename, "/Users/holly/Downloads/KITTI/sequences/00/image_1/%010d.png", frame_id);
+    // sprintf(filename, filepath+"/image_1/%010d.png", frame_id);
+    sprintf(file, "/image_1/%010d.png", frame_id);
 
     std::string filename = filepath + std::string(file);
 
@@ -91,24 +91,25 @@ void initializeImagesFeatures(int current_frame_id, std::string filepath,
 
 }
 
-void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matrix>& pose_matrix_gt, float fps)
+void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matrix>& pose_matrix_gt, float fps, bool show_gt)
 {
     // draw estimated trajectory 
     int x = int(pose.at<double>(0)) + 300;
     int y = int(pose.at<double>(2)) + 100;
     circle(trajectory, cv::Point(x, y) ,1, CV_RGB(255,0,0), 2);
 
-    // draw ground truth trajectory 
-    cv::Mat pose_gt = cv::Mat::zeros(1, 3, CV_64F);
-    
-    pose_gt.at<double>(0) = pose_matrix_gt[frame_id].val[0][3];
-    pose_gt.at<double>(1) = pose_matrix_gt[frame_id].val[0][7];
-    pose_gt.at<double>(2) = pose_matrix_gt[frame_id].val[0][11];
-    x = int(pose_gt.at<double>(0)) + 300;
-    y = int(pose_gt.at<double>(2)) + 100;
-    circle(trajectory, cv::Point(x, y) ,1, CV_RGB(255,255,0), 2);
-
-
+    if (show_gt)
+    {
+      // draw ground truth trajectory 
+      cv::Mat pose_gt = cv::Mat::zeros(1, 3, CV_64F);
+      
+      pose_gt.at<double>(0) = pose_matrix_gt[frame_id].val[0][3];
+      pose_gt.at<double>(1) = pose_matrix_gt[frame_id].val[0][7];
+      pose_gt.at<double>(2) = pose_matrix_gt[frame_id].val[0][11];
+      x = int(pose_gt.at<double>(0)) + 300;
+      y = int(pose_gt.at<double>(2)) + 100;
+      circle(trajectory, cv::Point(x, y) ,1, CV_RGB(255,255,0), 2);
+    }
     // print info
 
     // rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), CV_FILLED);
@@ -151,7 +152,7 @@ void integrateOdometryScale(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const c
     // if (scale<10) {
     if ((scale>0.1)&&(translation_mono.at<double>(2) > translation_mono.at<double>(0)) && (translation_mono.at<double>(2) > translation_mono.at<double>(1))) 
     {
-      pose = pose +scale *  Rpose * translation_mono;
+      pose = pose + scale *  Rpose * translation_mono;
       Rpose = rotation * Rpose;
 
     }
@@ -167,6 +168,8 @@ void integrateOdometryStereo(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const 
 
     if ((scale>0.1)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) 
     {
+      // std::cout << "Rpose" << Rpose << std::endl;
+
       pose = pose + Rpose * translation_stereo;
       Rpose = rotation * Rpose;
 
