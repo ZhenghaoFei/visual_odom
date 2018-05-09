@@ -42,4 +42,7 @@ void integrateOdometryScale(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const c
 void integrateOdometryStereo(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, 
                             const cv::Mat& translation_stereo);
 
+void loadGyro(std::string filename, std::vector<std::vector<double>>& time_gyros);
+// read time gyro txt file with format of timestamp, gx, gy, gz
+
 #endif

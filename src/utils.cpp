@@ -180,3 +180,53 @@ void integrateOdometryStereo(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const 
     }
 
 }
+
+void loadGyro(std::string filename, std::vector<std::vector<double>>& time_gyros)
+// read time gyro txt file with format of timestamp, gx, gy, gz
+{
+    std::ifstream file(filename);
+
+    std::string value;
+    double timestamp, gx, gy, gz;
+
+    while (file.good())
+    {    
+
+         std::vector<double> time_gyro;
+
+         getline ( file, value, ' ' );
+         timestamp = stod(value);
+         time_gyro.push_back(timestamp);
+
+         getline ( file, value, ' ' );
+         gx = stod(value);
+         time_gyro.push_back(gx);
+
+         getline ( file, value, ' ' );
+         gy = stod(value);
+         time_gyro.push_back(gy);
+
+         getline ( file, value);
+         gz = stod(value);
+         time_gyro.push_back(gz);
+
+         // printf("t: %f, gx: %f, gy: %f, gz: %f\n" , timestamp, gx, gy, gz);    
+
+         time_gyros.push_back(time_gyro);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

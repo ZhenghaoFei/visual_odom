@@ -154,6 +154,14 @@ int main(int argc, char const *argv[])
     cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << 721.6377, 0., 609.5593, 0., 0., 721.6377, 172.8540, 0., 0,  0., 1., 0.);
     cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << 721.6377, 0., 609.5593, -387.5744, 0., 721.6377, 172.8540, 0., 0,  0., 1., 0.);
 
+
+    // -----------------------------------------
+    // Load IMU's gyro data and timestamp
+    // -----------------------------------------    std::string filename
+    std::string gryopath = "/Users/holly/Downloads/KITTIRAW/sequence/oxts/time_gyro.txt";
+    std::vector<std::vector<double>> time_gyros;
+    loadGyro(gryopath, time_gyros);
+
     // -----------------------------------------
     // Initialize variables
     // -----------------------------------------
@@ -167,7 +175,7 @@ int main(int argc, char const *argv[])
     double init_yaw = 1.887805 - M_PI/2;
     cv::Mat Rpose = (cv::Mat_<double>(3, 3) << cos(init_yaw), 0, sin(init_yaw), 0, 1,  0, -sin(init_yaw), 0, cos(init_yaw));
 
-    std::cout << "Rpose" << Rpose << std::endl;
+    std::cout << "Init Rpose" << Rpose << std::endl;
 
     cv::Mat trajectory = cv::Mat::zeros(600, 600, CV_8UC3);
 
