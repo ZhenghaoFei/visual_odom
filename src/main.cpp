@@ -27,21 +27,23 @@
 int main(int argc, char const *argv[])
 {
 
+
+
     // -----------------------------------------
     // Load images and calibration parameters
     // -----------------------------------------
     char filename_pose[200];
-    // sprintf(filename_pose, "/Users/holly/Downloads/KITTI/poses/00.txt");
-    // std::vector<Matrix> pose_matrix_gt = loadPoses(filename_pose);
-    // std::string filepath = "/Users/holly/Downloads/KITTI/sequences/00/";
-    // cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
-    // cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
-
-    sprintf(filename_pose, "/Users/holly/Downloads/KITTIRAW/sequence/poses/00.txt");
+    sprintf(filename_pose, "/Users/holly/Downloads/KITTI/poses/00.txt");
     std::vector<Matrix> pose_matrix_gt = loadPoses(filename_pose);
-    std::string filepath = "/Users/holly/Downloads/KITTIRAW/sequence/";
-    cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << 721.6377, 0., 609.5593, 0., 0., 721.6377, 172.8540, 0., 0,  0., 1., 0.);
-    cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << 721.6377, 0., 609.5593, -387.5744, 0., 721.6377, 172.8540, 0., 0,  0., 1., 0.);
+    std::string filepath = "/Users/holly/Downloads/KITTI/sequences/00/";
+    cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
+    cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
+
+    // sprintf(filename_pose, "/Users/holly/Downloads/KITTIRAW/sequence/poses/00.txt");
+    // std::vector<Matrix> pose_matrix_gt = loadPoses(filename_pose);
+    // std::string filepath = "/Users/holly/Downloads/KITTIRAW/sequence/";
+    // cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << 721.6377, 0., 609.5593, 0., 0., 721.6377, 172.8540, 0., 0,  0., 1., 0.);
+    // cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << 721.6377, 0., 609.5593, -387.5744, 0., 721.6377, 172.8540, 0., 0,  0., 1., 0.);
 
 
     // -----------------------------------------
@@ -59,12 +61,11 @@ int main(int argc, char const *argv[])
     cv::Mat translation_stereo = cv::Mat::zeros(3, 1, CV_64F);
 
     cv::Mat pose = cv::Mat::zeros(3, 1, CV_64F);
-    // cv::Mat Rpose = cv::Mat::eye(3, 3, CV_64F);
+    cv::Mat Rpose = cv::Mat::eye(3, 3, CV_64F);
     
-    double init_yaw = 1.887805 - M_PI/2;
-    cv::Mat Rpose = (cv::Mat_<double>(3, 3) << cos(init_yaw), 0, sin(init_yaw), 0, 1,  0, -sin(init_yaw), 0, cos(init_yaw));
-
-    std::cout << "Init Rpose" << Rpose << std::endl;
+    // double init_yaw = 1.887805 - M_PI/2;
+    // cv::Mat Rpose = (cv::Mat_<double>(3, 3) << cos(init_yaw), 0, sin(init_yaw), 0, 1,  0, -sin(init_yaw), 0, cos(init_yaw));
+    // std::cout << "Init Rpose" << Rpose << std::endl;
 
     cv::Mat trajectory = cv::Mat::zeros(600, 600, CV_8UC3);
 
@@ -74,6 +75,7 @@ int main(int argc, char const *argv[])
     cv::Mat image_l, image_r;
     float fps;
     bool show_gt = true;
+
     // -----------------------------------------
     // Run visual odometry
     // -----------------------------------------
@@ -81,23 +83,23 @@ int main(int argc, char const *argv[])
 
     clock_t tic = clock();
 
-    for (int frame_id = init_frame_id; frame_id < 267; frame_id++)
+    for (int frame_id = init_frame_id; frame_id < 9000; frame_id++)
     {
 
         std::cout << std::endl << "frame_id " << frame_id << std::endl;
 
-        // visualOdometry(frame_id, filepath,
-        //                projMatrl, projMatrr,
-        //                rotation, translation_mono, translation_stereo, 
-        //                image_l, image_r,
-        //                current_features);
-
-        visualOdometryIMU(frame_id, filepath,
+        visualOdometry(frame_id, filepath,
                        projMatrl, projMatrr,
                        rotation, translation_mono, translation_stereo, 
                        image_l, image_r,
-                       current_features,
-                       time_gyros);
+                       current_features);
+
+        // visualOdometryIMU(frame_id, filepath,
+        //                projMatrl, projMatrr,
+        //                rotation, translation_mono, translation_stereo, 
+        //                image_l, image_r,
+        //                current_features,
+        //                time_gyros);
 
         // integrateOdometryMono(frame_id, pose, Rpose, rotation, translation_mono);
 

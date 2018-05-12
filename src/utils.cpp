@@ -49,9 +49,9 @@ void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points){
 
 cv::Mat loadImageLeft(int frame_id, std::string filepath){
     char file[200];
-    // sprintf(filename, "/Users/holly/Downloads/KITTI/sequences/00/image_0/%06d.png", frame_id);
-    sprintf(file, "/image_0/%010d.png", frame_id);
-
+    sprintf(file, "image_0/%06d.png", frame_id);
+    
+    // sprintf(file, "image_0/%010d.png", frame_id);
     std::string filename = filepath + std::string(file);
 
     cv::Mat image = cv::imread(filename);
@@ -62,10 +62,9 @@ cv::Mat loadImageLeft(int frame_id, std::string filepath){
 
 cv::Mat loadImageRight(int frame_id, std::string filepath){
     char file[200];
-    // sprintf(filename, "/Users/holly/Downloads/KITTI/sequences/00/image_1/%010d.png", frame_id);
-    // sprintf(filename, filepath+"/image_1/%010d.png", frame_id);
-    sprintf(file, "/image_1/%010d.png", frame_id);
+    sprintf(file, "image_1/%06d.png", frame_id);
 
+    // sprintf(filename, filepath+"/image_1/%010d.png", frame_id);
     std::string filename = filepath + std::string(file);
 
     cv::Mat image = cv::imread(filename);
