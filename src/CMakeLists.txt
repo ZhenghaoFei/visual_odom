@@ -18,7 +18,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 message(${PROJECT_SOURCE_DIR})
 
 add_executable( run main.cpp )
-target_link_libraries( utils evaluate_odometry)
+target_link_libraries( utils evaluate_odometry feature)
 target_link_libraries( visualOdometry bucket feature)
 
 target_link_libraries( run ${OpenCV_LIBS} bucket feature utils visualOdometry)
