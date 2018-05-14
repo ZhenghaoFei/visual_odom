@@ -1,7 +1,8 @@
 #include "feature.h"
 #include "bucket.h"
 
-void deleteUnmatchFeatures(std::vector<cv::Point2f>& points0, std::vector<cv::Point2f>& points1, std::vector<uchar>& status){
+void deleteUnmatchFeatures(std::vector<cv::Point2f>& points0, std::vector<cv::Point2f>& points1, std::vector<uchar>& status)
+{
   //getting rid of points for which the KLT tracking failed or those who have gone outside the frame
   int indexCorrection = 0;
   for( int i=0; i<status.size(); i++)
@@ -19,7 +20,9 @@ void deleteUnmatchFeatures(std::vector<cv::Point2f>& points0, std::vector<cv::Po
      }
 }
 
-void featureDetectionFast(cv::Mat image, std::vector<cv::Point2f>& points)  {   //uses FAST as of now, modify parameters as necessary
+void featureDetectionFast(cv::Mat image, std::vector<cv::Point2f>& points)  
+{   
+//uses FAST as for feature dection, modify parameters as necessary
   std::vector<cv::KeyPoint> keypoints;
   int fast_threshold = 20;
   bool nonmaxSuppression = true;
@@ -27,7 +30,9 @@ void featureDetectionFast(cv::Mat image, std::vector<cv::Point2f>& points)  {   
   cv::KeyPoint::convert(keypoints, points, std::vector<int>());
 }
 
-void featureDetectionGoodFeaturesToTrack(cv::Mat image, std::vector<cv::Point2f>& points)  {   //uses FAST as of now, modify parameters as necessary
+void featureDetectionGoodFeaturesToTrack(cv::Mat image, std::vector<cv::Point2f>& points)  
+{   
+//uses GoodFeaturesToTrack for feature dection, modify parameters as necessary
 
   int maxCorners = 5000;
   double qualityLevel = 0.01;
@@ -40,7 +45,8 @@ void featureDetectionGoodFeaturesToTrack(cv::Mat image, std::vector<cv::Point2f>
   cv::goodFeaturesToTrack( image, points, maxCorners, qualityLevel, minDistance, mask, blockSize, useHarrisDetector, k );
 }
 
-void featureTracking(cv::Mat img_1, cv::Mat img_2, std::vector<cv::Point2f>& points1, std::vector<cv::Point2f>& points2, std::vector<uchar>& status)   { 
+void featureTracking(cv::Mat img_1, cv::Mat img_2, std::vector<cv::Point2f>& points1, std::vector<cv::Point2f>& points2, std::vector<uchar>& status)  
+{ 
 //this function automatically gets rid of points for which tracking fails
 
   std::vector<float> err;                    
@@ -126,16 +132,9 @@ void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_
 // features_per_bucket: number of selected features per bucket
     int image_height = image.rows;
     int image_width = image.cols;
-
     int buckets_nums_height = image_height/bucket_size;
     int buckets_nums_width = image_width/bucket_size;
-
     int buckets_number = buckets_nums_height * buckets_nums_width;
-
-    // std::cout << "image_height " << image_height << std::endl;
-    // std::cout << "image_width " << image_width << std::endl;
-    // std::cout << "buckets_nums_height " << buckets_nums_height << std::endl;
-    // std::cout << "buckets_nums_width " << buckets_nums_width << std::endl;
 
     std::vector<Bucket> Buckets;
 
@@ -147,7 +146,6 @@ void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_
         Buckets.push_back(Bucket(features_per_bucket));
       }
     }
-    // std::cout << "buckets number " << Buckets.size() << std::endl;
 
     // bucket all current features into buckets by their location
     int buckets_nums_height_idx, buckets_nums_width_idx, buckets_idx;
@@ -155,8 +153,6 @@ void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_
     {
       buckets_nums_height_idx = current_features.points[i].y/bucket_size;
       buckets_nums_width_idx = current_features.points[i].x/bucket_size;
-      // std::cout << "buckets_nums_height_idx: " << buckets_nums_height_idx << ", " << buckets_nums_width_idx << std::endl;
-
       buckets_idx = buckets_nums_height_idx*buckets_nums_width + buckets_nums_width_idx;
       Buckets[buckets_idx].add_feature(current_features.points[i], current_features.ages[i]);
 
@@ -169,7 +165,6 @@ void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_
       for (int buckets_idx_width = 0; buckets_idx_width <= buckets_nums_width; buckets_idx_width++)
       {
          buckets_idx = buckets_idx_height*buckets_nums_width + buckets_idx_width;
-         // std::cout << "buckets " << buckets_idx << " size " << Buckets[buckets_idx].size() << std::endl;
          Buckets[buckets_idx].get_features(current_features);
       }
     }

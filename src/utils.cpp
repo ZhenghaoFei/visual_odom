@@ -1,7 +1,9 @@
 #include "utils.h"
 #include "evaluate_odometry.h"
 
-double getAbsoluteScale(int frame_id)    {
+double getAbsoluteScale(int frame_id)    
+{
+//only used in mono camera odometry
   std::string line;
   int i = 0;
   std::ifstream myfile ("/Users/holly/Downloads/KITTI/poses/00.txt");

@@ -40,7 +40,8 @@ struct functor
 
 };
 
-void hom2cart2( Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3_l,  Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3_r){
+void hom2cart2( Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3_l,  Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3_r)
+{
   // convert homogeneous coordinates to cartesian coordinates by normalizing z
   for (int i = 0; i < points3_l.cols(); i++)
   {
@@ -63,7 +64,6 @@ void hom2cart( Eigen::Matrix<double, 3,  Eigen::Dynamic> & points3){
       points3(2, i) = 1.;
   }
 }
-
 
 struct reprojection_error_function : functor<double>
 // Reprojection error function to be minimized for translation t
