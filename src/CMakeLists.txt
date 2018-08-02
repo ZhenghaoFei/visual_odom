@@ -9,16 +9,18 @@ include_directories(${EIGENPATH} )
 include_directories(evaluate)
 
 
-add_library(feature STATIC "feature.cpp")
-add_library(bucket STATIC "bucket.cpp")
-add_library(utils STATIC "utils.cpp")
-add_library(visualOdometry STATIC "visualOdometry.cpp")
+add_library(feature SHARED "feature.cpp")
+add_library(bucket SHARED "bucket.cpp")
+add_library(utils SHARED "utils.cpp")
+add_library(visualOdometry SHARED "visualOdometry.cpp")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 message(${PROJECT_SOURCE_DIR})
 
 add_executable( run main.cpp )
+target_link_libraries( bucket ${OpenCV_LIBS})
+target_link_libraries( feature ${OpenCV_LIBS} bucket)
 target_link_libraries( utils evaluate_odometry feature)
-target_link_libraries( visualOdometry bucket feature)
+target_link_libraries( visualOdometry utils bucket feature ${OpenCV_LIBS})
 
 target_link_libraries( run ${OpenCV_LIBS} bucket feature utils visualOdometry)
