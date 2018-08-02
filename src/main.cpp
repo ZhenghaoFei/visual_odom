@@ -24,32 +24,56 @@
 #include "evaluate_odometry.h"
 #include "visualOdometry.h"
 
-int main(int argc, char const *argv[])
+using namespace std;
+
+
+int main(int argc, char **argv)
 {
 
     // -----------------------------------------
     // Load images and calibration parameters
     // -----------------------------------------
-    char filename_pose[200];
-    sprintf(filename_pose, "/Users/holly/Downloads/KITTI/poses/00.txt");
-    std::vector<Matrix> pose_matrix_gt = loadPoses(filename_pose);
-    std::string filepath = "/Users/holly/Downloads/KITTI/sequences/00/";
-    cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << 718.8560, 0., 607.1928, 0., 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
-    cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << 718.8560, 0., 607.1928, -386.1448, 0., 718.8560, 185.2157, 0., 0,  0., 1., 0.);
+    bool display_ground_truth = false;
+    std::vector<Matrix> pose_matrix_gt;
+    if(argc == 4)
+    {   display_ground_truth = true;
+        cerr << "Display ground truth trajectory" << endl;
+        // load ground truth pose
+        string filename_pose = string(argv[3]);
+        pose_matrix_gt = loadPoses(filename_pose);
 
-    // sprintf(filename_pose, "/Users/holly/Downloads/KITTIRAW/sequence/poses/00.txt");
-    // std::vector<Matrix> pose_matrix_gt = loadPoses(filename_pose);
-    // std::string filepath = "/Users/holly/Downloads/KITTIRAW/sequence/";
-    // cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << 721.6377, 0., 609.5593, 0., 0., 721.6377, 172.8540, 0., 0,  0., 1., 0.);
-    // cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << 721.6377, 0., 609.5593, -387.5744, 0., 721.6377, 172.8540, 0., 0,  0., 1., 0.);
+    }
+    if(argc < 3)
+    {
+        cerr << "Usage: ./run path_to_sequence path_to_calibration [optional]path_to_ground_truth_pose" << endl;
+        return 1;
+    }
+
+    // sequence
+    string filepath = string(argv[1]);
+    cout << "Filepath: " << filepath << endl;
+
+    // camera calibration
+    string strSettingPath = string(argv[2]);
+    cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+    float fx = fSettings["Camera.fx"];
+    float fy = fSettings["Camera.fy"];
+    float cx = fSettings["Camera.cx"];
+    float cy = fSettings["Camera.cy"];
+    float bf = fSettings["Camera.bf"];
+
+    cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << fx, 0., cx, 0., 0., fy, cy, 0., 0,  0., 1., 0.);
+    cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << fx, 0., cx, bf, 0., fy, cy, 0., 0,  0., 1., 0.);
+    cout << "P_left: " << projMatrl << endl;
+    cout << "P_right: " << projMatrr << endl;
 
 
-    // -----------------------------------------
-    // Load IMU's gyro data and timestamp
-    // -----------------------------------------    std::string filename
-    std::string gryopath = "/Users/holly/Downloads/KITTIRAW/sequence/oxts/time_gyro.txt";
-    std::vector<std::vector<double>> time_gyros;
-    loadGyro(gryopath, time_gyros);
+    // // -----------------------------------------
+    // // Load IMU's gyro data and timestamp
+    // // -----------------------------------------    std::string filename
+    // std::string gryopath = "/Users/holly/Downloads/KITTIRAW/sequence/oxts/time_gyro.txt";
+    // std::vector<std::vector<double>> time_gyros;
+    // loadGyro(gryopath, time_gyros);
 
     // -----------------------------------------
     // Initialize variables
@@ -72,7 +96,6 @@ int main(int argc, char const *argv[])
     int init_frame_id = 0;
     cv::Mat image_l, image_r;
     float fps;
-    bool show_gt = true;
 
     // -----------------------------------------
     // Run visual odometry
@@ -111,7 +134,8 @@ int main(int argc, char const *argv[])
         std::cout << "Pose" << pose.t() << std::endl;
         std::cout << "FPS: " << fps << std::endl;
 
-        display(frame_id, trajectory, pose, pose_matrix_gt, fps, show_gt);
+        display(frame_id, trajectory, pose, pose_matrix_gt, fps, display_ground_truth);
+
 
 
     }
