@@ -49,11 +49,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // sequence
+    // Sequence
     string filepath = string(argv[1]);
     cout << "Filepath: " << filepath << endl;
 
-    // camera calibration
+    // Camera calibration
     string strSettingPath = string(argv[2]);
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
     float fx = fSettings["Camera.fx"];
@@ -64,16 +64,8 @@ int main(int argc, char **argv)
 
     cv::Mat projMatrl = (cv::Mat_<float>(3, 4) << fx, 0., cx, 0., 0., fy, cy, 0., 0,  0., 1., 0.);
     cv::Mat projMatrr = (cv::Mat_<float>(3, 4) << fx, 0., cx, bf, 0., fy, cy, 0., 0,  0., 1., 0.);
-    cout << "P_left: " << projMatrl << endl;
-    cout << "P_right: " << projMatrr << endl;
-
-
-    // // -----------------------------------------
-    // // Load IMU's gyro data and timestamp
-    // // -----------------------------------------    std::string filename
-    // std::string gryopath = "/Users/holly/Downloads/KITTIRAW/sequence/oxts/time_gyro.txt";
-    // std::vector<std::vector<double>> time_gyros;
-    // loadGyro(gryopath, time_gyros);
+    cout << "P_left: " << endl << projMatrl << endl;
+    cout << "P_right: " << endl << projMatrr << endl;
 
     // -----------------------------------------
     // Initialize variables
@@ -85,9 +77,6 @@ int main(int argc, char **argv)
     cv::Mat pose = cv::Mat::zeros(3, 1, CV_64F);
     cv::Mat Rpose = cv::Mat::eye(3, 3, CV_64F);
     
-    // double init_yaw = 1.887805 - M_PI/2;
-    // cv::Mat Rpose = (cv::Mat_<double>(3, 3) << cos(init_yaw), 0, sin(init_yaw), 0, 1,  0, -sin(init_yaw), 0, cos(init_yaw));
-    // std::cout << "Init Rpose" << Rpose << std::endl;
 
     cv::Mat trajectory = cv::Mat::zeros(600, 600, CV_8UC3);
 
@@ -114,17 +103,6 @@ int main(int argc, char **argv)
                        rotation, translation_mono, translation_stereo, 
                        image_l, image_r,
                        current_features);
-
-        // visualOdometryIMU(frame_id, filepath,
-        //                projMatrl, projMatrr,
-        //                rotation, translation_mono, translation_stereo, 
-        //                image_l, image_r,
-        //                current_features,
-        //                time_gyros);
-
-        // integrateOdometryMono(frame_id, pose, Rpose, rotation, translation_mono);
-
-        // integrateOdometryScale(frame_id, pose, Rpose, rotation, translation_mono, translation_stereo);
 
         integrateOdometryStereo(frame_id, pose, Rpose, rotation, translation_stereo);
 
