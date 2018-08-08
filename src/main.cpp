@@ -83,13 +83,24 @@ int main(int argc, char **argv)
     FeatureSet current_features;
 
     int init_frame_id = 0;
-    cv::Mat image_l, image_r;
+
+    // ------------
+    // Load first images
+    // ------------
+    cv::Mat image_left_t0_color,  image_left_t0;
+    loadImageLeft(image_left_t0_color,  image_left_t0, init_frame_id, filepath);
+    
+    cv::Mat image_right_t0_color, image_right_t0;  
+    loadImageRight(image_right_t0_color, image_right_t0, init_frame_id, filepath);
+
+
     float fps;
+
 
     // -----------------------------------------
     // Run visual odometry
     // -----------------------------------------
-    initializeImagesFeatures(init_frame_id, filepath, image_l, image_r, current_features);
+    // initializeImagesFeatures(init_frame_id, filepath, image_l, image_r, current_features);
 
     clock_t tic = clock();
 
@@ -101,7 +112,7 @@ int main(int argc, char **argv)
         visualOdometry(frame_id, filepath,
                        projMatrl, projMatrr,
                        rotation, translation_mono, translation_stereo, 
-                       image_l, image_r,
+                       image_left_t0, image_right_t0,
                        current_features);
 
         integrateOdometryStereo(frame_id, pose, Rpose, rotation, translation_stereo);

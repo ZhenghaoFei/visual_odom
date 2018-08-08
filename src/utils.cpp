@@ -35,9 +35,7 @@ double getAbsoluteScale(int frame_id)
   }
 
   return sqrt((x-x_prev)*(x-x_prev) + (y-y_prev)*(y-y_prev) + (z-z_prev)*(z-z_prev)) ;
-
 }
-
 
 void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points){
     int radius = 2;
@@ -48,49 +46,43 @@ void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points){
     }
 }
 
-
-cv::Mat loadImageLeft(int frame_id, std::string filepath){
+void loadImageLeft(cv::Mat& image_color, cv::Mat& image_gary, int frame_id, std::string filepath){
     char file[200];
     sprintf(file, "image_0/%06d.png", frame_id);
     
     // sprintf(file, "image_0/%010d.png", frame_id);
     std::string filename = filepath + std::string(file);
 
-    cv::Mat image = cv::imread(filename);
-    cvtColor(image, image, cv::COLOR_BGR2GRAY);
-
-    return image;
+    image_color = cv::imread(filename, cv::IMREAD_COLOR);
+    cvtColor(image_color, image_gary, cv::COLOR_BGR2GRAY);
 }
 
-cv::Mat loadImageRight(int frame_id, std::string filepath){
+void loadImageRight(cv::Mat& image_color, cv::Mat& image_gary, int frame_id, std::string filepath){
     char file[200];
     sprintf(file, "image_1/%06d.png", frame_id);
 
-    // sprintf(filename, filepath+"/image_1/%010d.png", frame_id);
+    // sprintf(file, "image_0/%010d.png", frame_id);
     std::string filename = filepath + std::string(file);
 
-    cv::Mat image = cv::imread(filename);
-    cvtColor(image, image, cv::COLOR_BGR2GRAY);
-
-    return image;
+    image_color = cv::imread(filename, cv::IMREAD_COLOR);
+    cvtColor(image_color, image_gary, cv::COLOR_BGR2GRAY);
 }
 
+// void initializeImagesFeatures(int current_frame_id, std::string filepath,
+//                         cv::Mat& image_left_t0, cv::Mat& image_right_t0,
+//                         FeatureSet& features){
 
-void initializeImagesFeatures(int current_frame_id, std::string filepath,
-                        cv::Mat& image_left_t0, cv::Mat& image_right_t0,
-                        FeatureSet& features){
+//     image_left_t0 = loadImageLeft(current_frame_id, filepath);
+//     image_right_t0 = loadImageRight(current_frame_id, filepath);
 
-    image_left_t0 = loadImageLeft(current_frame_id, filepath);
-    image_right_t0 = loadImageRight(current_frame_id, filepath);
+//     featureDetectionFast(image_left_t0, features.points);        
 
-    featureDetectionFast(image_left_t0, features.points);        
+//     for(int i = 0; i < features.points.size(); i++)
+//     {
+//       features.ages.push_back(0);
+//     }
 
-    for(int i = 0; i < features.points.size(); i++)
-    {
-      features.ages.push_back(0);
-    }
-
-}
+// }
 
 void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matrix>& pose_matrix_gt, float fps, bool show_gt)
 {
@@ -140,7 +132,6 @@ void integrateOdometryMono(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv
      std::cout << "[WARNING] scale below 0.1, or incorrect translation" << std::endl;
     }
 
-
 }
 
 void integrateOdometryScale(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, const cv::Mat& translation_mono, const cv::Mat& translation_stereo)
@@ -157,7 +148,6 @@ void integrateOdometryScale(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const c
       Rpose = rotation * Rpose;
 
     }
-
 }
 
 void integrateOdometryStereo(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, const cv::Mat& translation_stereo)
@@ -179,7 +169,6 @@ void integrateOdometryStereo(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const 
     {
      std::cout << "[WARNING] scale below 0.1, or incorrect translation" << std::endl;
     }
-
 }
 
 void loadGyro(std::string filename, std::vector<std::vector<double>>& time_gyros)

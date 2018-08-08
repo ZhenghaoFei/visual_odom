@@ -60,6 +60,7 @@ void featureTracking(cv::Mat img_1, cv::Mat img_2, std::vector<cv::Point2f>& poi
 
 void deleteUnmatchFeaturesCircle(std::vector<cv::Point2f>& points0, std::vector<cv::Point2f>& points1,
                           std::vector<cv::Point2f>& points2, std::vector<cv::Point2f>& points3,
+                          std::vector<cv::Point2f>& points0_return,
                           std::vector<uchar>& status0, std::vector<uchar>& status1,
                           std::vector<uchar>& status2, std::vector<uchar>& status3,
                           std::vector<int>& ages){
@@ -75,6 +76,7 @@ void deleteUnmatchFeaturesCircle(std::vector<cv::Point2f>& points0, std::vector<
         cv::Point2f pt1 = points1.at(i- indexCorrection);
         cv::Point2f pt2 = points2.at(i- indexCorrection);
         cv::Point2f pt3 = points3.at(i- indexCorrection);
+        cv::Point2f pt0_r = points0_return.at(i- indexCorrection);
         
         if ((status3.at(i) == 0)||(pt3.x<0)||(pt3.y<0)||
             (status2.at(i) == 0)||(pt2.x<0)||(pt2.y<0)||
@@ -89,6 +91,8 @@ void deleteUnmatchFeaturesCircle(std::vector<cv::Point2f>& points0, std::vector<
           points1.erase (points1.begin() + (i - indexCorrection));
           points2.erase (points2.begin() + (i - indexCorrection));
           points3.erase (points3.begin() + (i - indexCorrection));
+          points0_return.erase (points0_return.begin() + (i - indexCorrection));
+
           ages.erase (ages.begin() + (i - indexCorrection));
           indexCorrection++;
         }
@@ -99,6 +103,7 @@ void deleteUnmatchFeaturesCircle(std::vector<cv::Point2f>& points0, std::vector<
 void circularMatching(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat img_r_1,
                       std::vector<cv::Point2f>& points_l_0, std::vector<cv::Point2f>& points_r_0,
                       std::vector<cv::Point2f>& points_l_1, std::vector<cv::Point2f>& points_r_1,
+                      std::vector<cv::Point2f>& points_l_0_return,
                       FeatureSet& current_features) { 
   
   //this function automatically gets rid of points for which tracking fails
@@ -116,9 +121,9 @@ void circularMatching(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat
   calcOpticalFlowPyrLK(img_l_0, img_r_0, points_l_0, points_r_0, status0, err, winSize, 3, termcrit, 0, 0.001);
   calcOpticalFlowPyrLK(img_r_0, img_r_1, points_r_0, points_r_1, status1, err, winSize, 3, termcrit, 0, 0.001);
   calcOpticalFlowPyrLK(img_r_1, img_l_1, points_r_1, points_l_1, status2, err, winSize, 3, termcrit, 0, 0.001);
-  calcOpticalFlowPyrLK(img_l_1, img_l_0, points_l_1, points_l_0, status3, err, winSize, 3, termcrit, 0, 0.001);
+  calcOpticalFlowPyrLK(img_l_1, img_l_0, points_l_1, points_l_0_return, status3, err, winSize, 3, termcrit, 0, 0.001);
   
-  deleteUnmatchFeaturesCircle(points_l_0, points_r_0, points_r_1, points_l_1,
+  deleteUnmatchFeaturesCircle(points_l_0, points_r_0, points_r_1, points_l_1, points_l_0_return,
                         status0, status1, status2, status3, current_features.ages);
 
   // std::cout << "points : " << points_l_0.size() << " "<< points_r_0.size() << " "<< points_r_1.size() << " "<< points_l_1.size() << " "<<std::endl;

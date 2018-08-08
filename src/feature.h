@@ -30,6 +30,7 @@ struct FeatureSet {
     }
  };
 
+
 void deleteUnmatchFeatures(std::vector<cv::Point2f>& points0, std::vector<cv::Point2f>& points1, std::vector<uchar>& status);
 
 void featureDetectionFast(cv::Mat image, std::vector<cv::Point2f>& points);
@@ -40,6 +41,7 @@ void featureTracking(cv::Mat img_1, cv::Mat img_2, std::vector<cv::Point2f>& poi
 
 void deleteUnmatchFeaturesCircle(std::vector<cv::Point2f>& points0, std::vector<cv::Point2f>& points1,
                           std::vector<cv::Point2f>& points2, std::vector<cv::Point2f>& points3,
+                          std::vector<cv::Point2f>& points0_return,
                           std::vector<uchar>& status0, std::vector<uchar>& status1,
                           std::vector<uchar>& status2, std::vector<uchar>& status3,
                           std::vector<int>& ages);
@@ -47,6 +49,7 @@ void deleteUnmatchFeaturesCircle(std::vector<cv::Point2f>& points0, std::vector<
 void circularMatching(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat img_r_1,
                       std::vector<cv::Point2f>& points_l_0, std::vector<cv::Point2f>& points_r_0,
                       std::vector<cv::Point2f>& points_l_1, std::vector<cv::Point2f>& points_r_1,
+                      std::vector<cv::Point2f>& points_l_0_return,
                       FeatureSet& current_features);
 
 void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_size, int features_per_bucket);

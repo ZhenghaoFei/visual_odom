@@ -40,6 +40,40 @@ cv::Mat euler2rot(cv::Mat& rotationMatrix, const cv::Mat & euler)
   return rotationMatrix;
 }
 
+void checkValidMatch(std::vector<cv::Point2f>& points, std::vector<cv::Point2f>& points_return, std::vector<bool>& status, int threshold)
+{
+    int offset;
+    for (int i = 0; i < points.size(); i++)
+    {
+        offset = std::max(std::abs(points[i].x - points_return[i].x), std::abs(points[i].y - points_return[i].y));
+        // std::cout << offset << ", ";
+
+        if(offset > 0)
+        {
+            status.push_back(false);
+        }
+        else
+        {
+            status.push_back(true);
+        }
+    }
+}
+
+void removeInvalidPoints(std::vector<cv::Point2f>& points, const std::vector<bool>& status)
+{
+    int index = 0;
+    for (int i = 0; i < status.size(); i++)
+    {
+        if (status[i] == false)
+        {
+            points.erase(points.begin() + index);
+        }
+        else
+        {
+            index ++;
+        }
+    }
+}
 
 
 void visualOdometry(int current_frame_id, std::string filepath,
@@ -53,13 +87,16 @@ void visualOdometry(int current_frame_id, std::string filepath,
     // ------------
     // Load images
     // ------------
-    cv::Mat image_left_t1 = loadImageLeft(current_frame_id + 1, filepath);
-    cv::Mat image_right_t1 = loadImageRight(current_frame_id + 1, filepath);
+    cv::Mat image_left_t1_color,  image_left_t1;
+    loadImageLeft(image_left_t1_color,  image_left_t1, current_frame_id + 1, filepath);
+    
+    cv::Mat image_right_t1_color, image_right_t1;  
+    loadImageRight(image_right_t1_color, image_right_t1, current_frame_id + 1, filepath);
 
     // ----------------------------
     // Feature detection using FAST
     // ----------------------------
-    std::vector<cv::Point2f>  points_left_t0, points_right_t0, points_left_t1, points_right_t1;   //vectors to store the coordinates of the feature points
+    std::vector<cv::Point2f>  points_left_t0, points_right_t0, points_left_t1, points_right_t1, points_left_t0_return;   //vectors to store the coordinates of the feature points
 
     if (current_features.size() < 2000)
     {
@@ -82,14 +119,56 @@ void visualOdometry(int current_frame_id, std::string filepath,
     bucketingFeatures(image_left_t0, current_features, bucket_size, features_per_bucket);
 
     points_left_t0 = current_features.points;
-
+    
     circularMatching(image_left_t0, image_right_t0, image_left_t1, image_right_t1,
-                     points_left_t0, points_right_t0, points_left_t1, points_right_t1,
-                     current_features);
+                     points_left_t0, points_right_t0, points_left_t1, points_right_t1, points_left_t0_return, current_features);
+
+    std::vector<bool> status;
+    checkValidMatch(points_left_t0, points_left_t0_return, status, 1);
 
 
+    removeInvalidPoints(points_left_t0, status);
+
+    removeInvalidPoints(points_left_t0_return, status);
+
+    removeInvalidPoints(points_left_t1, status);
+
+    removeInvalidPoints(points_right_t0, status);
+    
     current_features.points = points_left_t1;
 
+
+    checkValidMatch(points_left_t0, points_left_t0_return, status, 1);
+
+    // -----------------------------------------
+    // Display
+    // -----------------------------------------
+
+    int radius = 2;
+    // cv::Mat vis = image_left_t0.clone();
+
+    cv::Mat vis;
+
+    cv::cvtColor(image_left_t1, vis, CV_GRAY2BGR, 3);
+
+
+    for (int i = 0; i < points_left_t0.size(); i++)
+    {
+        circle(vis, cvPoint(points_left_t0[i].x, points_left_t0[i].y), radius, CV_RGB(0,255,0));
+    }
+
+    for (int i = 0; i < points_left_t0_return.size(); i++)
+    {
+        circle(vis, cvPoint(points_left_t0_return[i].x, points_left_t0_return[i].y), radius, CV_RGB(255,0,0));
+    }
+
+    for (int i = 0; i < points_left_t0_return.size(); i++)
+    {
+        cv::line(vis, points_left_t0[i], points_left_t0_return[i], CV_RGB(0,255,0));
+    }
+
+    imshow("vis ", vis );
+    // cv::waitKey(1000);
     // -----------------------------------------------------------
     // Rotation(R) estimation using Nister's Five Points Algorithm
     // -----------------------------------------------------------
@@ -148,121 +227,8 @@ void visualOdometry(int current_frame_id, std::string filepath,
     // imshow( "Left camera", image_left_t0 );
     // imshow( "Right camera", image_right_t0 );
 
-    drawFeaturePoints(image_left_t1, current_features.points);
-    imshow("Features ", image_left_t1 );
+    // drawFeaturePoints(image_left_t1, current_features.points);
+    // imshow("Features ", image_left_t1 );
 }
 
-void visualOdometryIMU(int current_frame_id, std::string filepath,
-                    cv::Mat& projMatrl, cv::Mat& projMatrr,
-                    cv::Mat& rotation, cv::Mat& translation_mono, cv::Mat& translation_stereo, 
-                    cv::Mat& image_left_t0,
-                    cv::Mat& image_right_t0,
-                    FeatureSet& current_features,
-                    std::vector<std::vector<double>> time_gyros)
-{
 
-    // ------------
-    // Load images
-    // ------------
-    cv::Mat image_left_t1 = loadImageLeft(current_frame_id + 1, filepath);
-    cv::Mat image_right_t1 = loadImageRight(current_frame_id + 1, filepath);
-
-    // ----------------------------
-    // Feature detection using FAST
-    // ----------------------------
-    std::vector<cv::Point2f>  points_left_t0, points_right_t0, points_left_t1, points_right_t1;   //vectors to store the coordinates of the feature points
-
-    if (current_features.size() < 2000)
-    {
-        // use all new features
-        // featureDetectionFast(image_left_t0, current_features.points);     
-        // current_features.ages = std::vector<int>(current_features.points.size(), 0);
-
-        // append new features with old features
-        appendNewFeatures(image_left_t0, current_features);   
-
-        std::cout << "Current feature set size: " << current_features.points.size() << std::endl;
-    }
-
-
-    // --------------------------------------------------------
-    // Feature tracking using KLT tracker, bucketing and circular matching
-    // --------------------------------------------------------
-    int bucket_size = 50;
-    int features_per_bucket = 4;
-    bucketingFeatures(image_left_t0, current_features, bucket_size, features_per_bucket);
-
-    points_left_t0 = current_features.points;
-
-    circularMatching(image_left_t0, image_right_t0, image_left_t1, image_right_t1,
-                     points_left_t0, points_right_t0, points_left_t1, points_right_t1,
-                     current_features);
-
-
-    current_features.points = points_left_t1;
-
-    // ---------------------
-    // Triangulate 3D Points
-    // ---------------------
-    cv::Mat points4D_t0;
-    triangulatePoints( projMatrl,  projMatrr,  points_left_t0,  points_right_t0,  points4D_t0);
-
-
-    // -----------------------
-    // Rotation (R) from IMU
-    // -----------------------
-    cv::Mat delta_rpy = cv::Mat::zeros(3, 1, CV_64FC1);
-    double delta_t = time_gyros[current_frame_id+1][0] - time_gyros[current_frame_id][0];
-    delta_rpy.at<double>(0) = delta_t * time_gyros[current_frame_id][1];
-    delta_rpy.at<double>(1) = delta_t * time_gyros[current_frame_id][2];
-    delta_rpy.at<double>(2) = delta_t * time_gyros[current_frame_id][3];
-    delta_rpy = -delta_rpy;
-    rotation = euler2rot(rotation, delta_rpy);
-
-    // ------------------------------------------------
-    // Translation (t) and Rotation (R) estimation by use solvePnPRansac
-    // ------------------------------------------------
-    cv::Mat points3D_t0;
-    convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
-    cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);  
-    cv::Mat inliers;  
-    cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
-    cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) << projMatrl.at<float>(0, 0), projMatrl.at<float>(0, 1), projMatrl.at<float>(0, 2),
-                                                 projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
-                                                 projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
-
-    int iterationsCount = 500;        // number of Ransac iterations.
-    float reprojectionError = 2.0;    // maximum allowed distance to consider it an inlier.
-    float confidence = 0.95;          // RANSAC successful confidence.
-    bool useExtrinsicGuess = false;
-    int flags =cv::SOLVEPNP_ITERATIVE;
-
-    cv::solvePnPRansac( points3D_t0, points_left_t1, intrinsic_matrix, distCoeffs, rvec, translation_stereo,
-                        useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
-                        inliers, flags );
-    rvec = -rvec;
-    translation_stereo = -translation_stereo;
-
-    // cv::Rodrigues(rvec, rotation);
-
-
-    // std::cout << "rvec : " <<rvec <<std::endl;
-    // std::cout << "translation_stereo : " <<translation_stereo <<std::endl;
-
-    // -----------------------------------------
-    // Prepare image for next frame
-    // -----------------------------------------
-    image_left_t0 = image_left_t1;
-    image_right_t0 = image_right_t1;
-
-
-    // -----------------------------------------
-    // Display
-    // -----------------------------------------
-
-    // imshow( "Left camera", image_left_t0 );
-    // imshow( "Right camera", image_right_t0 );
-
-    drawFeaturePoints(image_left_t1, current_features.points);
-    imshow("Features ", image_left_t1 );
-}
