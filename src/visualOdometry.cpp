@@ -127,22 +127,13 @@ void visualOdometry(int current_frame_id, std::string filepath,
     std::vector<bool> status;
     checkValidMatch(points_left_t0, points_left_t0_return, status, 1);
 
-
     removeInvalidPoints(points_left_t0, status);
-
     removeInvalidPoints(points_left_t0_return, status);
-
     removeInvalidPoints(points_left_t1, status);
-
     removeInvalidPoints(points_right_t0, status);
-    
+
     current_features.points = points_left_t1;
 
-
-    checkValidMatch(points_left_t0, points_left_t0_return, status, 1);
-
-
-    // cv::waitKey(1000);
     // -----------------------------------------------------------
     // Rotation(R) estimation using Nister's Five Points Algorithm
     // -----------------------------------------------------------
@@ -211,14 +202,14 @@ void visualOdometry(int current_frame_id, std::string filepath,
         circle(vis, cvPoint(points_left_t0[i].x, points_left_t0[i].y), radius, CV_RGB(0,255,0));
     }
 
-    for (int i = 0; i < points_left_t0_return.size(); i++)
+    for (int i = 0; i < points_left_t1.size(); i++)
     {
-        circle(vis, cvPoint(points_left_t0_return[i].x, points_left_t0_return[i].y), radius, CV_RGB(255,0,0));
+        circle(vis, cvPoint(points_left_t1[i].x, points_left_t1[i].y), radius, CV_RGB(255,0,0));
     }
 
-    for (int i = 0; i < points_left_t0_return.size(); i++)
+    for (int i = 0; i < points_left_t1.size(); i++)
     {
-        cv::line(vis, points_left_t0[i], points_left_t0_return[i], CV_RGB(0,255,0));
+        cv::line(vis, points_left_t0[i], points_left_t1[i], CV_RGB(0,255,0));
     }
 
     imshow("vis ", vis );
