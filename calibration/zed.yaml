@@ -22,7 +22,7 @@ Camera.height: 1280
 Camera.fps: 10.0
 
 # stereo baseline times fx
-Camera.bf: 82.12415128946304
+Camera.bf: -82.12415128946304
 
 
 # Close/Far threshold. Baseline times.

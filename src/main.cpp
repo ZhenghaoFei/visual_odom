@@ -163,7 +163,8 @@ int main(int argc, char **argv)
                        current_features);
 
         cv::Vec3f rotation_euler = rotationMatrixToEulerAngles(rotation);
-        std::cout << "rotation" << rotation_euler << std::endl;
+        std::cout << "rotation: " << rotation_euler << std::endl;
+        std::cout << "translation: " << translation_stereo.t() << std::endl;
 
         if(abs(rotation_euler[1])<0.1 && abs(rotation_euler[0])<0.1 && abs(rotation_euler[2])<0.1)
         {

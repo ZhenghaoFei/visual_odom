@@ -141,34 +141,7 @@ void visualOdometry(int current_frame_id, std::string filepath,
 
     checkValidMatch(points_left_t0, points_left_t0_return, status, 1);
 
-    // -----------------------------------------
-    // Display
-    // -----------------------------------------
 
-    int radius = 2;
-    // cv::Mat vis = image_left_t0.clone();
-
-    cv::Mat vis;
-
-    cv::cvtColor(image_left_t1, vis, CV_GRAY2BGR, 3);
-
-
-    for (int i = 0; i < points_left_t0.size(); i++)
-    {
-        circle(vis, cvPoint(points_left_t0[i].x, points_left_t0[i].y), radius, CV_RGB(0,255,0));
-    }
-
-    for (int i = 0; i < points_left_t0_return.size(); i++)
-    {
-        circle(vis, cvPoint(points_left_t0_return[i].x, points_left_t0_return[i].y), radius, CV_RGB(255,0,0));
-    }
-
-    for (int i = 0; i < points_left_t0_return.size(); i++)
-    {
-        cv::line(vis, points_left_t0[i], points_left_t0_return[i], CV_RGB(0,255,0));
-    }
-
-    imshow("vis ", vis );
     // cv::waitKey(1000);
     // -----------------------------------------------------------
     // Rotation(R) estimation using Nister's Five Points Algorithm
@@ -225,11 +198,31 @@ void visualOdometry(int current_frame_id, std::string filepath,
     // Display
     // -----------------------------------------
 
-    // imshow( "Left camera", image_left_t0 );
-    // imshow( "Right camera", image_right_t0 );
+    int radius = 2;
+    // cv::Mat vis = image_left_t0.clone();
 
-    // drawFeaturePoints(image_left_t1, current_features.points);
-    // imshow("Features ", image_left_t1 );
+    cv::Mat vis;
+
+    cv::cvtColor(image_left_t1, vis, CV_GRAY2BGR, 3);
+
+
+    for (int i = 0; i < points_left_t0.size(); i++)
+    {
+        circle(vis, cvPoint(points_left_t0[i].x, points_left_t0[i].y), radius, CV_RGB(0,255,0));
+    }
+
+    for (int i = 0; i < points_left_t0_return.size(); i++)
+    {
+        circle(vis, cvPoint(points_left_t0_return[i].x, points_left_t0_return[i].y), radius, CV_RGB(255,0,0));
+    }
+
+    for (int i = 0; i < points_left_t0_return.size(); i++)
+    {
+        cv::line(vis, points_left_t0[i], points_left_t0_return[i], CV_RGB(0,255,0));
+    }
+
+    imshow("vis ", vis );
+    
 }
 
 
