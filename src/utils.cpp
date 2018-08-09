@@ -150,19 +150,33 @@ void integrateOdometryScale(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const c
     }
 }
 
-void integrateOdometryStereo(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, const cv::Mat& translation_stereo)
+void integrateOdometryStereo(int frame_i, cv::Mat& frame_pose, const cv::Mat& rotation, const cv::Mat& translation_stereo)
 {
+
+    // std::cout << "rotation" << rotation << std::endl;
+    // std::cout << "translation_stereo" << translation_stereo << std::endl;
+
+    cv::Mat rigid_body_transformation;
+    cv::Mat addup = (cv::Mat_<double>(1, 4) << 0, 0, 0, 1);
+
+    cv::hconcat(rotation, translation_stereo, rigid_body_transformation);
+    cv::vconcat(rigid_body_transformation, addup, rigid_body_transformation);
+
+    // std::cout << "rigid_body_transformation" << rigid_body_transformation << std::endl;
 
     double scale = sqrt((translation_stereo.at<double>(0))*(translation_stereo.at<double>(0)) 
                         + (translation_stereo.at<double>(1))*(translation_stereo.at<double>(1))
                         + (translation_stereo.at<double>(2))*(translation_stereo.at<double>(2))) ;
 
-    if ((scale>0.1)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) 
+    // frame_pose = frame_pose * rigid_body_transformation;
+    std::cout << "scale" << scale << std::endl;
+
+    // if ((scale>0.1)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) 
+    if (scale>0.1) 
     {
       // std::cout << "Rpose" << Rpose << std::endl;
 
-      pose = pose + Rpose * translation_stereo;
-      Rpose = rotation * Rpose;
+      frame_pose = frame_pose * rigid_body_transformation;
 
     }
     else 

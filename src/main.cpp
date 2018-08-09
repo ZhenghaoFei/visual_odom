@@ -26,6 +26,47 @@
 
 using namespace std;
 
+bool isRotationMatrix(cv::Mat &R)
+{
+    cv::Mat Rt;
+    transpose(R, Rt);
+    cv::Mat shouldBeIdentity = Rt * R;
+    cv::Mat I = cv::Mat::eye(3,3, shouldBeIdentity.type());
+     
+    return  norm(I, shouldBeIdentity) < 1e-6;
+     
+}
+ 
+// Calculates rotation matrix to euler angles
+// The result is the same as MATLAB except the order
+// of the euler angles ( x and z are swapped ).
+cv::Vec3f rotationMatrixToEulerAngles(cv::Mat &R)
+{
+ 
+    assert(isRotationMatrix(R));
+     
+    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
+ 
+    bool singular = sy < 1e-6; // If
+ 
+    float x, y, z;
+    if (!singular)
+    {
+        x = atan2(R.at<double>(2,1) , R.at<double>(2,2));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = atan2(R.at<double>(1,0), R.at<double>(0,0));
+    }
+    else
+    {
+        x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = 0;
+    }
+    return cv::Vec3f(x, y, z);
+     
+     
+     
+}
 
 int main(int argc, char **argv)
 {
@@ -77,6 +118,12 @@ int main(int argc, char **argv)
     cv::Mat pose = cv::Mat::zeros(3, 1, CV_64F);
     cv::Mat Rpose = cv::Mat::eye(3, 3, CV_64F);
     
+    cv::Mat frame_pose = cv::Mat::eye(4, 4, CV_64F);
+    // cv::hconcat(cv::Mat::eye(4, 4, CV_64F), cv::Mat::zeros(3, 1, CV_64F), frame_pose);
+    // cv::vconcat(frame_pose, cv::Mat::zeros(1, 4, CV_64F), frame_pose);
+
+    std::cout << "frame_pose " << frame_pose << std::endl;
+
 
     cv::Mat trajectory = cv::Mat::zeros(600, 600, CV_8UC3);
 
@@ -115,13 +162,31 @@ int main(int argc, char **argv)
                        image_left_t0, image_right_t0,
                        current_features);
 
-        integrateOdometryStereo(frame_id, pose, Rpose, rotation, translation_stereo);
+        cv::Vec3f rotation_euler = rotationMatrixToEulerAngles(rotation);
+        std::cout << "rotation" << rotation_euler << std::endl;
+
+        if(abs(rotation_euler[1])<0.1 && abs(rotation_euler[0])<0.1 && abs(rotation_euler[2])<0.1)
+        {
+            integrateOdometryStereo(frame_id, frame_pose, rotation, translation_stereo);
+
+        } else {
+
+            std::cout << "Too large rotation"  << std::endl;
+        }
+
+        // std::cout << "frame_pose" << frame_pose << std::endl;
+        Rpose =  frame_pose(cv::Range(0, 3), cv::Range(0, 3));
+        cv::Vec3f Rpose_euler = rotationMatrixToEulerAngles(Rpose);
+        std::cout << "Rpose_euler" << Rpose_euler << std::endl;
+
+        cv::Mat pose = frame_pose.col(3).clone();
 
         clock_t toc = clock();
         fps = float(frame_id-init_frame_id)/(toc-tic)*CLOCKS_PER_SEC;
 
+        pose = -pose;
         std::cout << "Pose" << pose.t() << std::endl;
-        std::cout << "FPS: " << fps << std::endl;
+        // std::cout << "FPS: " << fps << std::endl;
 
         display(frame_id, trajectory, pose, pose_matrix_gt, fps, display_ground_truth);
 

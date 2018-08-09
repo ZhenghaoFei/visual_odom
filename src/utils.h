@@ -39,7 +39,7 @@ void integrateOdometryMono(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv
 void integrateOdometryScale(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, 
                             const cv::Mat& translation_mono, const cv::Mat& translation_stereo);
 
-void integrateOdometryStereo(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, 
+void integrateOdometryStereo(int frame_id, cv::Mat& frame_pose, const cv::Mat& rotation, 
                             const cv::Mat& translation_stereo);
 
 void loadGyro(std::string filename, std::vector<std::vector<double>>& time_gyros);

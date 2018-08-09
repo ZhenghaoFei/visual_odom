@@ -1,5 +1,6 @@
 #include "visualOdometry.h"
 
+
 cv::Mat euler2rot(cv::Mat& rotationMatrix, const cv::Mat & euler)
 {
 
@@ -208,7 +209,7 @@ void visualOdometry(int current_frame_id, std::string filepath,
                         useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                         inliers, flags );
 
-    translation_stereo = -translation_stereo;
+    // translation_stereo = -translation_stereo;
 
     // std::cout << "rvec : " <<rvec <<std::endl;
     // std::cout << "translation_stereo : " <<translation_stereo <<std::endl;
