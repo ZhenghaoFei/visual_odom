@@ -115,6 +115,8 @@ void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matri
     cv::waitKey(1);
 }
 
+
+
 void integrateOdometryMono(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, const cv::Mat& translation_mono)
 {
     double scale = 1.00;
@@ -172,7 +174,7 @@ void integrateOdometryStereo(int frame_i, cv::Mat& frame_pose, const cv::Mat& ro
     std::cout << "scale: " << scale << std::endl;
 
     // if ((scale>0.1)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) 
-    if (scale > 0.05 && scale < 10) 
+    if (scale > 0. && scale < 1) 
     {
       // std::cout << "Rpose" << Rpose << std::endl;
 

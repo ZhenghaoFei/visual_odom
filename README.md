@@ -22,16 +22,14 @@ git clone https://github.com/ZhenghaoFei/visual_odom.git
 ```
 Change **EIGENPATH** in visual_odometry/CMakeLists.txt
 
-Change **filename_pose** & **filepath** in visual_odometry/src/main.cpp to your location of KITTI odom data
-
-Change **projection matrixs** in visual_odometry/src/main.cpp to your calibration data
+The system use **Camera Parameters** in calibration/xx.yaml, put your own camera parameters in the same format and pass the path when you run.
 
 ```bash
 mkdir build
 cd build
 cmake ..
 make -j4
-./run
+./run /PathtoKITTI/sequences/00/ ../calibration/kitti00.yaml
 ```
 ### Reference code
 1. [Monocular visual odometry algorithm](https://github.com/avisingh599/mono-vo/blob/master/README.md)

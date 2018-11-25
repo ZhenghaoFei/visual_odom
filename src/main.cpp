@@ -96,7 +96,11 @@ int main(int argc, char **argv)
 
     // Camera calibration
     string strSettingPath = string(argv[2]);
+    cout << "Calibration Filepath: " << strSettingPath << endl;
+
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+
+    
     float fx = fSettings["Camera.fx"];
     float fy = fSettings["Camera.fy"];
     float cx = fSettings["Camera.cx"];
@@ -125,7 +129,7 @@ int main(int argc, char **argv)
     std::cout << "frame_pose " << frame_pose << std::endl;
 
 
-    cv::Mat trajectory = cv::Mat::zeros(600, 600, CV_8UC3);
+    cv::Mat trajectory = cv::Mat::zeros(600, 1200, CV_8UC3);
 
     FeatureSet current_features;
 
@@ -135,6 +139,7 @@ int main(int argc, char **argv)
     // Load first images
     // ------------
     cv::Mat image_left_t0_color,  image_left_t0;
+
     loadImageLeft(image_left_t0_color,  image_left_t0, init_frame_id, filepath);
     
     cv::Mat image_right_t0_color, image_right_t0;  
@@ -187,7 +192,7 @@ int main(int argc, char **argv)
 
         pose = -pose;
         std::cout << "Pose" << pose.t() << std::endl;
-        // std::cout << "FPS: " << fps << std::endl;
+        std::cout << "FPS: " << fps << std::endl;
 
         display(frame_id, trajectory, pose, pose_matrix_gt, fps, display_ground_truth);
 
