@@ -163,9 +163,9 @@ void visualOdometry(int current_frame_id, std::string filepath,
                                                  projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
                                                  projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
 
-    int iterationsCount = 1000;        // number of Ransac iterations.
-    float reprojectionError = 1.0;    // maximum allowed distance to consider it an inlier.
-    float confidence = 0.99;          // RANSAC successful confidence.
+    int iterationsCount = 500;        // number of Ransac iterations.
+    float reprojectionError = 2.0;    // maximum allowed distance to consider it an inlier.
+    float confidence = 0.95;          // RANSAC successful confidence.
     bool useExtrinsicGuess = true;
     int flags =cv::SOLVEPNP_ITERATIVE;
 
