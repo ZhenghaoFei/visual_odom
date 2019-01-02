@@ -1,43 +1,13 @@
 #include "utils.h"
 #include "evaluate_odometry.h"
 
-double getAbsoluteScale(int frame_id)    
+
+
+// --------------------------------
+// Visualization
+// --------------------------------
+void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points)
 {
-//only used in mono camera odometry
-  std::string line;
-  int i = 0;
-  std::ifstream myfile ("/Users/holly/Downloads/KITTI/poses/00.txt");
-  double x =0, y=0, z = 0;
-  double x_prev, y_prev, z_prev;
-  if (myfile.is_open())
-  {
-    while (( std::getline (myfile,line) ) && (i<=frame_id))
-    {
-      z_prev = z;
-      x_prev = x;
-      y_prev = y;
-      std::istringstream in(line);
-      //cout << line << '\n';
-      for (int j=0; j<12; j++)  {
-        in >> z ;
-        if (j==7) y=z;
-        if (j==3)  x=z;
-      }
-      
-      i++;
-    }
-    myfile.close();
-  }
-
-  else {
-    std::cout << "Unable to open file";
-    return 0;
-  }
-
-  return sqrt((x-x_prev)*(x-x_prev) + (y-y_prev)*(y-y_prev) + (z-z_prev)*(z-z_prev)) ;
-}
-
-void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points){
     int radius = 2;
     
     for (int i = 0; i < points.size(); i++)
@@ -45,44 +15,6 @@ void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points){
         circle(image, cvPoint(points[i].x, points[i].y), radius, CV_RGB(255,255,255));
     }
 }
-
-void loadImageLeft(cv::Mat& image_color, cv::Mat& image_gary, int frame_id, std::string filepath){
-    char file[200];
-    sprintf(file, "image_0/%06d.png", frame_id);
-    
-    // sprintf(file, "image_0/%010d.png", frame_id);
-    std::string filename = filepath + std::string(file);
-
-    image_color = cv::imread(filename, cv::IMREAD_COLOR);
-    cvtColor(image_color, image_gary, cv::COLOR_BGR2GRAY);
-}
-
-void loadImageRight(cv::Mat& image_color, cv::Mat& image_gary, int frame_id, std::string filepath){
-    char file[200];
-    sprintf(file, "image_1/%06d.png", frame_id);
-
-    // sprintf(file, "image_0/%010d.png", frame_id);
-    std::string filename = filepath + std::string(file);
-
-    image_color = cv::imread(filename, cv::IMREAD_COLOR);
-    cvtColor(image_color, image_gary, cv::COLOR_BGR2GRAY);
-}
-
-// void initializeImagesFeatures(int current_frame_id, std::string filepath,
-//                         cv::Mat& image_left_t0, cv::Mat& image_right_t0,
-//                         FeatureSet& features){
-
-//     image_left_t0 = loadImageLeft(current_frame_id, filepath);
-//     image_right_t0 = loadImageRight(current_frame_id, filepath);
-
-//     featureDetectionFast(image_left_t0, features.points);        
-
-//     for(int i = 0; i < features.points.size(); i++)
-//     {
-//       features.ages.push_back(0);
-//     }
-
-// }
 
 void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matrix>& pose_matrix_gt, float fps, bool show_gt)
 {
@@ -117,48 +49,79 @@ void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matri
 
 
 
-void integrateOdometryMono(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, const cv::Mat& translation_mono)
+void featureSetToPointClouds(cv::Mat& points3D,  PointCloud::Ptr cloud)
 {
-    double scale = 1.00;
-    scale = getAbsoluteScale(frame_id);
-
-    std::cout << "translation_mono: " << scale*translation_mono.t() << std::endl;
-
-    if ((scale>0.1)&&(translation_mono.at<double>(2) > translation_mono.at<double>(0)) && (translation_mono.at<double>(2) > translation_mono.at<double>(1))) 
+    // append
+    int size = points3D.rows;
+    for (int i = 0; i < size; ++i)
     {
-      pose = pose + scale * Rpose * translation_mono;
-      Rpose = rotation * Rpose;
-    }
-    
-    else {
-     std::cout << "[WARNING] scale below 0.1, or incorrect translation" << std::endl;
-    }
-
-}
-
-void integrateOdometryScale(int frame_id, cv::Mat& pose, cv::Mat& Rpose, const cv::Mat& rotation, const cv::Mat& translation_mono, const cv::Mat& translation_stereo)
-{
-
-    double scale = sqrt((translation_stereo.at<double>(0))*(translation_stereo.at<double>(0)) 
-                        + (translation_stereo.at<double>(1))*(translation_stereo.at<double>(1))
-                        + (translation_stereo.at<double>(2))*(translation_stereo.at<double>(2))) ;
-
-    // if (scale<10) {
-    if ((scale>0.1)&&(translation_mono.at<double>(2) > translation_mono.at<double>(0)) && (translation_mono.at<double>(2) > translation_mono.at<double>(1))) 
-    {
-      pose = pose + scale *  Rpose * translation_mono;
-      Rpose = rotation * Rpose;
-
+        PointT point;
+        point.x = points3D.at<float>(i, 0);
+        point.y = points3D.at<float>(i, 1);
+        point.z = points3D.at<float>(i, 2);
+        cloud->points.push_back(point);
     }
 }
 
-void integrateOdometryStereo(int frame_i, cv::Mat& frame_pose, const cv::Mat& rotation, const cv::Mat& translation_stereo)
+void featureSetToPointCloudsValid(cv::Mat& points3D,  PointCloud::Ptr cloud, std::vector<bool>& valid)
+{
+    // append only valid points
+    int size = points3D.rows;
+    for (int i = 0; i < size; ++i)
+    {
+        if (valid[i])
+        {
+            PointT point;
+            point.x = points3D.at<float>(i, 0);
+            point.y = points3D.at<float>(i, 1);
+            point.z = points3D.at<float>(i, 2);
+            cloud->points.push_back(point);
+        }
+    }
+}
+
+void mapPointsToPointCloudsAppend(std::vector<MapPoint>& mapPoints,  PointCloud::Ptr cloud)
+{
+    // append only valid points
+    size_t mapSize = mapPoints.size();
+    size_t start = cloud->size();
+    for (size_t i = start; i < mapSize; ++i)
+    {
+            PointT point;
+            point.x = mapPoints[i].mWorldPos.at<float>(0);
+            point.y = mapPoints[i].mWorldPos.at<float>(1);
+            point.z = mapPoints[i].mWorldPos.at<float>(2);
+            cloud->points.push_back(point);
+    }
+}
+
+void simpleVis (pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud, boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer)
+{
+  // --------------------------------------------
+  // -----Open 3D viewer and add point cloud-----
+  // --------------------------------------------
+  viewer->setBackgroundColor (0, 0, 0);
+  viewer->removePointCloud ("sample cloud");
+
+  viewer->addPointCloud<pcl::PointXYZ> (cloud, "sample cloud");
+  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
+  viewer->addCoordinateSystem (1.0);
+  viewer->spinOnce();
+  // viewer->spin();
+}
+
+// --------------------------------
+// Transformation
+// --------------------------------
+
+
+void integrateOdometryStereo(int frame_i, cv::Mat& rigid_body_transformation, cv::Mat& frame_pose, const cv::Mat& rotation, const cv::Mat& translation_stereo)
 {
 
     // std::cout << "rotation" << rotation << std::endl;
     // std::cout << "translation_stereo" << translation_stereo << std::endl;
 
-    cv::Mat rigid_body_transformation;
+    
     cv::Mat addup = (cv::Mat_<double>(1, 4) << 0, 0, 0, 1);
 
     cv::hconcat(rotation, translation_stereo, rigid_body_transformation);
@@ -173,6 +136,7 @@ void integrateOdometryStereo(int frame_i, cv::Mat& frame_pose, const cv::Mat& ro
     // frame_pose = frame_pose * rigid_body_transformation;
     std::cout << "scale: " << scale << std::endl;
 
+    // rigid_body_transformation = rigid_body_transformation.inv();
     // if ((scale>0.1)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1))) 
     if (scale > 0.05 && scale < 10) 
     {
@@ -186,6 +150,50 @@ void integrateOdometryStereo(int frame_i, cv::Mat& frame_pose, const cv::Mat& ro
      std::cout << "[WARNING] scale below 0.1, or incorrect translation" << std::endl;
     }
 }
+
+bool isRotationMatrix(cv::Mat &R)
+{
+    cv::Mat Rt;
+    transpose(R, Rt);
+    cv::Mat shouldBeIdentity = Rt * R;
+    cv::Mat I = cv::Mat::eye(3,3, shouldBeIdentity.type());
+     
+    return  norm(I, shouldBeIdentity) < 1e-6;
+     
+}
+ 
+// Calculates rotation matrix to euler angles
+// The result is the same as MATLAB except the order
+// of the euler angles ( x and z are swapped ).
+cv::Vec3f rotationMatrixToEulerAngles(cv::Mat &R)
+{
+ 
+    assert(isRotationMatrix(R));
+     
+    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
+ 
+    bool singular = sy < 1e-6; // If
+ 
+    float x, y, z;
+    if (!singular)
+    {
+        x = atan2(R.at<double>(2,1) , R.at<double>(2,2));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = atan2(R.at<double>(1,0), R.at<double>(0,0));
+    }
+    else
+    {
+        x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = 0;
+    }
+    return cv::Vec3f(x, y, z);
+     
+}
+
+// --------------------------------
+// I/O
+// --------------------------------
 
 void loadGyro(std::string filename, std::vector<std::vector<double>>& time_gyros)
 // read time gyro txt file with format of timestamp, gx, gy, gz
@@ -222,9 +230,27 @@ void loadGyro(std::string filename, std::vector<std::vector<double>>& time_gyros
     }
 }
 
+void loadImageLeft(cv::Mat& image_color, cv::Mat& image_gary, int frame_id, std::string filepath){
+    char file[200];
+    sprintf(file, "image_0/%06d.png", frame_id);
+    
+    // sprintf(file, "image_0/%010d.png", frame_id);
+    std::string filename = filepath + std::string(file);
 
+    image_color = cv::imread(filename, cv::IMREAD_COLOR);
+    cvtColor(image_color, image_gary, cv::COLOR_BGR2GRAY);
+}
 
+void loadImageRight(cv::Mat& image_color, cv::Mat& image_gary, int frame_id, std::string filepath){
+    char file[200];
+    sprintf(file, "image_1/%06d.png", frame_id);
 
+    // sprintf(file, "image_0/%010d.png", frame_id);
+    std::string filename = filepath + std::string(file);
+
+    image_color = cv::imread(filename, cv::IMREAD_COLOR);
+    cvtColor(image_color, image_gary, cv::COLOR_BGR2GRAY);
+}
 
 
 

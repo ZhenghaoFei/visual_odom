@@ -18,6 +18,12 @@
 #include <string>
 
 
+struct FeaturePoint{
+  cv::Point2f  point;
+  int id;
+  int age;
+};
+
 struct FeatureSet {
     std::vector<cv::Point2f>  points;
     std::vector<int>  ages;
@@ -55,5 +61,7 @@ void circularMatching(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat
 void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_size, int features_per_bucket);
 
 void appendNewFeatures(cv::Mat& image, FeatureSet& current_features);
+
+void appendNewFeatures(std::vector<cv::Point2f> points_new, FeatureSet& current_features);
 
 #endif

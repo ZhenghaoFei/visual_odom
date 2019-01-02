@@ -19,54 +19,21 @@
 #include <unsupported/Eigen/NumericalDiff>
 #include <opencv2/core/eigen.hpp>
 
+
+
 #include "feature.h"
 #include "utils.h"
 #include "evaluate_odometry.h"
 #include "visualOdometry.h"
+#include "Frame.h"
+#include "MapPoint.h"
 
 using namespace std;
 
-bool isRotationMatrix(cv::Mat &R)
-{
-    cv::Mat Rt;
-    transpose(R, Rt);
-    cv::Mat shouldBeIdentity = Rt * R;
-    cv::Mat I = cv::Mat::eye(3,3, shouldBeIdentity.type());
-     
-    return  norm(I, shouldBeIdentity) < 1e-6;
-     
-}
- 
-// Calculates rotation matrix to euler angles
-// The result is the same as MATLAB except the order
-// of the euler angles ( x and z are swapped ).
-cv::Vec3f rotationMatrixToEulerAngles(cv::Mat &R)
-{
- 
-    assert(isRotationMatrix(R));
-     
-    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
- 
-    bool singular = sy < 1e-6; // If
- 
-    float x, y, z;
-    if (!singular)
-    {
-        x = atan2(R.at<double>(2,1) , R.at<double>(2,2));
-        y = atan2(-R.at<double>(2,0), sy);
-        z = atan2(R.at<double>(1,0), R.at<double>(0,0));
-    }
-    else
-    {
-        x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
-        y = atan2(-R.at<double>(2,0), sy);
-        z = 0;
-    }
-    return cv::Vec3f(x, y, z);
-     
-     
-     
-}
+typedef pcl::PointXYZ PointT;
+typedef pcl::PointCloud<PointT> PointCloud;
+
+
 
 int main(int argc, char **argv)
 {
@@ -116,13 +83,13 @@ int main(int argc, char **argv)
     // Initialize variables
     // -----------------------------------------
     cv::Mat rotation = cv::Mat::eye(3, 3, CV_64F);
-    cv::Mat translation_mono = cv::Mat::zeros(3, 1, CV_64F);
     cv::Mat translation_stereo = cv::Mat::zeros(3, 1, CV_64F);
 
     cv::Mat pose = cv::Mat::zeros(3, 1, CV_64F);
     cv::Mat Rpose = cv::Mat::eye(3, 3, CV_64F);
     
     cv::Mat frame_pose = cv::Mat::eye(4, 4, CV_64F);
+    cv::Mat frame_pose32 = cv::Mat::eye(4, 4, CV_32F);
     // cv::hconcat(cv::Mat::eye(4, 4, CV_64F), cv::Mat::zeros(3, 1, CV_64F), frame_pose);
     // cv::vconcat(frame_pose, cv::Mat::zeros(1, 4, CV_64F), frame_pose);
 
@@ -130,20 +97,28 @@ int main(int argc, char **argv)
 
 
     cv::Mat trajectory = cv::Mat::zeros(600, 1200, CV_8UC3);
+    pcl::visualization::PCLVisualizer *visualizer;
 
-    FeatureSet current_features;
+    FeatureSet currentVOFeatures;
+
+    PointCloud::Ptr features_cloud_ptr (new PointCloud);
+
+    cv::Mat points4D, points3D;
+
+
+
 
     int init_frame_id = 0;
 
-    // ------------
+    // ------------------------
     // Load first images
-    // ------------
-    cv::Mat image_left_t0_color,  image_left_t0;
+    // ------------------------
+    cv::Mat imageLeft_t0_color,  imageLeft_t0;
 
-    loadImageLeft(image_left_t0_color,  image_left_t0, init_frame_id, filepath);
+    loadImageLeft(imageLeft_t0_color,  imageLeft_t0, init_frame_id, filepath);
     
-    cv::Mat image_right_t0_color, image_right_t0;  
-    loadImageRight(image_right_t0_color, image_right_t0, init_frame_id, filepath);
+    cv::Mat imageRight_t0_color, imageRight_t0;  
+    loadImageRight(imageRight_t0_color, imageRight_t0, init_frame_id, filepath);
 
 
     float fps;
@@ -152,35 +127,135 @@ int main(int argc, char **argv)
     // -----------------------------------------
     // Run visual odometry
     // -----------------------------------------
-    // initializeImagesFeatures(init_frame_id, filepath, image_l, image_r, current_features);
 
     clock_t tic = clock();
 
-    for (int frame_id = init_frame_id; frame_id < 9000; frame_id++)
+
+    std::vector<MapPoint> mapPoints;
+
+    std::vector<FeaturePoint> oldFeaturePointsLeft;
+    std::vector<FeaturePoint> currentFeaturePointsLeft;
+
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+
+
+    for (int frame_id = init_frame_id+1; frame_id < 9000; frame_id++)
     {
 
-        std::cout << std::endl << "frame_id " << frame_id << std::endl;
 
-        visualOdometry(frame_id, filepath,
-                       projMatrl, projMatrr,
-                       rotation, translation_mono, translation_stereo, 
-                       image_left_t0, image_right_t0,
-                       current_features);
+
+        std::cout << std::endl << "frame_id " << frame_id << std::endl;
+        // ------------
+        // Load images
+        // ------------
+        cv::Mat imageLeft_t1_color,  imageLeft_t1;
+        loadImageLeft(imageLeft_t1_color,  imageLeft_t1, frame_id, filepath);        
+        cv::Mat imageRight_t1_color, imageRight_t1;  
+        loadImageRight(imageRight_t1_color, imageRight_t1, frame_id, filepath);
+
+        std::vector<cv::Point2f> oldPointsLeft_t0 = currentVOFeatures.points;
+
+
+        std::vector<cv::Point2f> pointsLeft_t0, pointsRight_t0, pointsLeft_t1, pointsRight_t1;  
+
+        matchingFeatures( imageLeft_t0, imageRight_t0,
+                          imageLeft_t1, imageRight_t1, 
+                          currentVOFeatures,
+                          mapPoints,
+                          pointsLeft_t0, 
+                          pointsRight_t0, 
+                          pointsLeft_t1, 
+                          pointsRight_t1);  
+
+        imageLeft_t0 = imageLeft_t1;
+        imageRight_t0 = imageRight_t1;
+
+        std::vector<cv::Point2f>& currentPointsLeft_t0 = pointsLeft_t0;
+        std::vector<cv::Point2f>& currentPointsLeft_t1 = pointsLeft_t1;
+
+        std::cout << "oldPointsLeft_t0 size : " << oldPointsLeft_t0.size() << std::endl;
+        std::cout << "currentFramePointsLeft size : " << currentPointsLeft_t0.size() << std::endl;
+        
+
+        std::vector<cv::Point2f> newPoints;
+        std::vector<bool> valid; // valid new points are ture
+
+
+
+        // ---------------------
+        // Triangulate 3D Points
+        // ---------------------
+        cv::Mat points3D_t0, points4D_t0;
+        cv::triangulatePoints( projMatrl,  projMatrr,  pointsLeft_t0,  pointsRight_t0,  points4D_t0);
+        cv::convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
+        // std::cout << "points4D_t0 size : " << points4D_t0.size() << std::endl;
+
+        cv::Mat points3D_t1, points4D_t1;
+        // std::cout << "pointsLeft_t1 size : " << pointsLeft_t1.size() << std::endl;
+        // std::cout << "pointsRight_t1 size : " << pointsRight_t1.size() << std::endl;
+
+        cv::triangulatePoints( projMatrl,  projMatrr,  pointsLeft_t1,  pointsRight_t1,  points4D_t1);
+        cv::convertPointsFromHomogeneous(points4D_t1.t(), points3D_t1);
+        // std::cout << "points4D_t1 size : " << points4D_t1.size() << std::endl;
+        // ---------------------
+        // Tracking transfomation
+        // ---------------------
+        trackingFrame2Frame(projMatrl, projMatrr, pointsLeft_t0, pointsLeft_t1, points3D_t0, rotation, translation_stereo);
+        displayTracking(imageLeft_t1, pointsLeft_t0, pointsLeft_t1);
+
+
+        points4D = points4D_t0;
+        frame_pose.convertTo(frame_pose32, CV_32F);
+        points4D = frame_pose32 * points4D;
+        cv::convertPointsFromHomogeneous(points4D.t(), points3D);
+
+
+        // -------------------------------
+        // Append new points to mapPoints
+        // -------------------------------
+
+        // removeExistPoints(newPoints, valid, currentPointsLeft_t0, oldPointsLeft_t0);
+        distinguishNewPoints(newPoints, valid, mapPoints, frame_id-1, 
+                             points3D_t0, points3D_t1, points3D, 
+                             currentPointsLeft_t0, currentPointsLeft_t1, currentFeaturePointsLeft, oldFeaturePointsLeft);
+        oldFeaturePointsLeft = currentFeaturePointsLeft;
+        std::cout << "mapPoints size : " << mapPoints.size() << std::endl;
+
+        // ------------------------------------------------
+        // Append feature points to Point clouds
+        // ------------------------------------------------
+        // featureSetToPointCloudsValid(points3D, features_cloud_ptr, valid);
+        mapPointsToPointCloudsAppend(mapPoints, features_cloud_ptr);
+        std::cout << std::endl << "featureSetToPointClouds size: " << features_cloud_ptr->size() << std::endl;
+        simpleVis(features_cloud_ptr, viewer);
+
+
+        // break;
+
+        // ------------------------------------------------
+        // Intergrating and display
+        // ------------------------------------------------
 
         cv::Vec3f rotation_euler = rotationMatrixToEulerAngles(rotation);
         std::cout << "rotation: " << rotation_euler << std::endl;
         std::cout << "translation: " << translation_stereo.t() << std::endl;
 
+        cv::Mat rigid_body_transformation;
+
         if(abs(rotation_euler[1])<0.1 && abs(rotation_euler[0])<0.1 && abs(rotation_euler[2])<0.1)
         {
-            integrateOdometryStereo(frame_id, frame_pose, rotation, translation_stereo);
+            integrateOdometryStereo(frame_id, rigid_body_transformation, frame_pose, rotation, translation_stereo);
 
         } else {
 
             std::cout << "Too large rotation"  << std::endl;
         }
 
-        // std::cout << "frame_pose" << frame_pose << std::endl;
+        std::cout << "rigid_body_transformation" << rigid_body_transformation << std::endl;
+
+        std::cout << "frame_pose" << frame_pose << std::endl;
+
+
         Rpose =  frame_pose(cv::Range(0, 3), cv::Range(0, 3));
         cv::Vec3f Rpose_euler = rotationMatrixToEulerAngles(Rpose);
         std::cout << "Rpose_euler" << Rpose_euler << std::endl;
@@ -190,12 +265,13 @@ int main(int argc, char **argv)
         clock_t toc = clock();
         fps = float(frame_id-init_frame_id)/(toc-tic)*CLOCKS_PER_SEC;
 
-        pose = -pose;
+        // pose = -pose;
         std::cout << "Pose" << pose.t() << std::endl;
         std::cout << "FPS: " << fps << std::endl;
 
         display(frame_id, trajectory, pose, pose_matrix_gt, fps, display_ground_truth);
 
+        // break;
 
 
     }

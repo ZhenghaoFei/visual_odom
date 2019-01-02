@@ -55,7 +55,6 @@ void featureTracking(cv::Mat img_1, cv::Mat img_2, std::vector<cv::Point2f>& poi
 
   calcOpticalFlowPyrLK(img_1, img_2, points1, points2, status, err, winSize, 3, termcrit, 0, 0.001);
   deleteUnmatchFeatures(points1, points2, status);
-
 }
 
 void deleteUnmatchFeaturesCircle(std::vector<cv::Point2f>& points0, std::vector<cv::Point2f>& points1,
@@ -130,7 +129,8 @@ void circularMatching(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat
 }
 
 
-void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_size, int features_per_bucket){
+void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_size, int features_per_bucket)
+{
 // This function buckets features
 // image: only use for getting dimension of the image
 // bucket_size: bucket size in pixel is bucket_size*bucket_size
@@ -178,9 +178,17 @@ void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_
 
 }
 
-void appendNewFeatures(cv::Mat& image, FeatureSet& current_features){
+void appendNewFeatures(cv::Mat& image, FeatureSet& current_features)
+{
     std::vector<cv::Point2f>  points_new;
     featureDetectionFast(image, points_new);
+    current_features.points.insert(current_features.points.end(), points_new.begin(), points_new.end());
+    std::vector<int>  ages_new(points_new.size(), 0);
+    current_features.ages.insert(current_features.ages.end(), ages_new.begin(), ages_new.end());
+}
+
+void appendNewFeatures(std::vector<cv::Point2f> points_new, FeatureSet& current_features)
+{
     current_features.points.insert(current_features.points.end(), points_new.begin(), points_new.end());
     std::vector<int>  ages_new(points_new.size(), 0);
     current_features.ages.insert(current_features.ages.end(), ages_new.begin(), ages_new.end());
