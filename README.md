@@ -8,8 +8,6 @@ Original Paper: https://lamor.fer.hr/images/50020776/Cvisic2017.pdf
 
 ![alt text](https://github.com/ZhenghaoFei/visual_odom/blob/master/images/trajectory.png "trajectory")
 
-Demo video: (https://www.youtube.com/watch?v=Z3S5J_BHQVw&feature=youtu.be)
-
 ### Requirements
 [OpenCV 3.0](https://opencv.org/)
 
