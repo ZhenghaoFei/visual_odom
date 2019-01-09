@@ -3,6 +3,7 @@
 This repository is C++ OpenCV implementation of SOFT (Stereo Odometry based on careful Feature selection and Tracking)
 
 Original Paper: https://lamor.fer.hr/images/50020776/Cvisic2017.pdf
+
 Demo vedio: https://www.youtube.com/watch?v=Z3S5J_BHQVw&t=17s
 
 ![alt text](https://github.com/ZhenghaoFei/visual_odom/blob/master/images/features.png "features")
