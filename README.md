@@ -22,8 +22,6 @@ Tested on [KITTI](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) odomet
 ```bash
 git clone https://github.com/ZhenghaoFei/visual_odom.git
 ```
-Change **EIGENPATH** in visual_odometry/CMakeLists.txt
-
 The system use **Camera Parameters** in calibration/xx.yaml, put your own camera parameters in the same format and pass the path when you run.
 
 ```bash
