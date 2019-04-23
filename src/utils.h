@@ -17,7 +17,6 @@
 #include <fstream>
 #include <string>
 
-#include <boost/make_shared.hpp>
 
 #include "feature.h"
 #include "matrix.h"
