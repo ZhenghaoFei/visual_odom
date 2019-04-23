@@ -116,12 +116,15 @@ void circularMatching(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat
   std::vector<uchar> status2;
   std::vector<uchar> status3;
 
-
+  clock_t tic = clock();
   calcOpticalFlowPyrLK(img_l_0, img_r_0, points_l_0, points_r_0, status0, err, winSize, 3, termcrit, 0, 0.001);
   calcOpticalFlowPyrLK(img_r_0, img_r_1, points_r_0, points_r_1, status1, err, winSize, 3, termcrit, 0, 0.001);
   calcOpticalFlowPyrLK(img_r_1, img_l_1, points_r_1, points_l_1, status2, err, winSize, 3, termcrit, 0, 0.001);
   calcOpticalFlowPyrLK(img_l_1, img_l_0, points_l_1, points_l_0_return, status3, err, winSize, 3, termcrit, 0, 0.001);
-  
+  clock_t toc = clock();
+  std::cerr << "calcOpticalFlowPyrLK time: " << float(toc - tic)/CLOCKS_PER_SEC*1000 << "ms" << std::endl;
+
+
   deleteUnmatchFeaturesCircle(points_l_0, points_r_0, points_r_1, points_l_1, points_l_0_return,
                         status0, status1, status2, status3, current_features.ages);
 

@@ -97,7 +97,7 @@ void matchingFeatures(cv::Mat& imageLeft_t0, cv::Mat& imageRight_t0,
 
         // append new features with old features
         appendNewFeatures(imageLeft_t0, currentVOFeatures);   
-        std::cout << "Current feature set size: " << currentVOFeatures.points.size() << std::endl;
+        // std::cout << "Current feature set size: " << currentVOFeatures.points.size() << std::endl;
     }
 
     // --------------------------------------------------------
@@ -146,7 +146,7 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       cv::Mat translation_mono = cv::Mat::zeros(3, 1, CV_64F);
       E = cv::findEssentialMat(pointsLeft_t1, pointsLeft_t0, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
       cv::recoverPose(E, pointsLeft_t1, pointsLeft_t0, rotation, translation_mono, focal, principle_point, mask);
-      std::cout << "recoverPose rotation: " << rotation << std::endl;
+      // std::cout << "recoverPose rotation: " << rotation << std::endl;
 
       // ------------------------------------------------
       // Translation (t) estimation by use solvePnPRansac
@@ -169,7 +169,7 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
                           inliers, flags );
 
       translation = -translation;
-      std::cout << "inliers size: " << inliers.size() << std::endl;
+      // std::cout << "inliers size: " << inliers.size() << std::endl;
 
 }
 
@@ -292,9 +292,9 @@ void visualOdometry(int current_frame_id, std::string filepath,
                                                  projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
                                                  projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
 
-    int iterationsCount = 1000;        // number of Ransac iterations.
-    float reprojectionError = 1.0;    // maximum allowed distance to consider it an inlier.
-    float confidence = 0.99;          // RANSAC successful confidence.
+    int iterationsCount = 500;        // number of Ransac iterations.
+    float reprojectionError = 2.0;    // maximum allowed distance to consider it an inlier.
+    float confidence = 0.95;          // RANSAC successful confidence.
     bool useExtrinsicGuess = true;
     int flags =cv::SOLVEPNP_ITERATIVE;
 

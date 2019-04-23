@@ -140,8 +140,8 @@ int main(int argc, char **argv)
         std::vector<cv::Point2f>& currentPointsLeft_t0 = pointsLeft_t0;
         std::vector<cv::Point2f>& currentPointsLeft_t1 = pointsLeft_t1;
 
-        std::cout << "oldPointsLeft_t0 size : " << oldPointsLeft_t0.size() << std::endl;
-        std::cout << "currentFramePointsLeft size : " << currentPointsLeft_t0.size() << std::endl;
+        // std::cout << "oldPointsLeft_t0 size : " << oldPointsLeft_t0.size() << std::endl;
+        // std::cout << "currentFramePointsLeft size : " << currentPointsLeft_t0.size() << std::endl;
         
         std::vector<cv::Point2f> newPoints;
         std::vector<bool> valid; // valid new points are ture
@@ -180,8 +180,8 @@ int main(int argc, char **argv)
         // ------------------------------------------------
 
         cv::Vec3f rotation_euler = rotationMatrixToEulerAngles(rotation);
-        std::cout << "rotation: " << rotation_euler << std::endl;
-        std::cout << "translation: " << translation_stereo.t() << std::endl;
+        // std::cout << "rotation: " << rotation_euler << std::endl;
+        // std::cout << "translation: " << translation_stereo.t() << std::endl;
 
         cv::Mat rigid_body_transformation;
 
@@ -194,21 +194,21 @@ int main(int argc, char **argv)
             std::cout << "Too large rotation"  << std::endl;
         }
 
-        std::cout << "rigid_body_transformation" << rigid_body_transformation << std::endl;
+        // std::cout << "rigid_body_transformation" << rigid_body_transformation << std::endl;
 
-        std::cout << "frame_pose" << frame_pose << std::endl;
+        // std::cout << "frame_pose" << frame_pose << std::endl;
 
 
         Rpose =  frame_pose(cv::Range(0, 3), cv::Range(0, 3));
         cv::Vec3f Rpose_euler = rotationMatrixToEulerAngles(Rpose);
-        std::cout << "Rpose_euler" << Rpose_euler << std::endl;
+        // std::cout << "Rpose_euler" << Rpose_euler << std::endl;
 
         cv::Mat pose = frame_pose.col(3).clone();
 
         clock_t toc = clock();
         fps = float(frame_id-init_frame_id)/(toc-tic)*CLOCKS_PER_SEC;
 
-        std::cout << "Pose" << pose.t() << std::endl;
+        // std::cout << "Pose" << pose.t() << std::endl;
         std::cout << "FPS: " << fps << std::endl;
 
         display(frame_id, trajectory, pose, pose_matrix_gt, fps, display_ground_truth);
