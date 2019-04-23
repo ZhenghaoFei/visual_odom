@@ -49,67 +49,6 @@ void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matri
 
 
 
-void featureSetToPointClouds(cv::Mat& points3D,  PointCloud::Ptr cloud)
-{
-    // append
-    int size = points3D.rows;
-    for (int i = 0; i < size; ++i)
-    {
-        PointT point;
-        point.x = points3D.at<float>(i, 0);
-        point.y = points3D.at<float>(i, 1);
-        point.z = points3D.at<float>(i, 2);
-        cloud->points.push_back(point);
-    }
-}
-
-void featureSetToPointCloudsValid(cv::Mat& points3D,  PointCloud::Ptr cloud, std::vector<bool>& valid)
-{
-    // append only valid points
-    int size = points3D.rows;
-    for (int i = 0; i < size; ++i)
-    {
-        if (valid[i])
-        {
-            PointT point;
-            point.x = points3D.at<float>(i, 0);
-            point.y = points3D.at<float>(i, 1);
-            point.z = points3D.at<float>(i, 2);
-            cloud->points.push_back(point);
-        }
-    }
-}
-
-void mapPointsToPointCloudsAppend(std::vector<MapPoint>& mapPoints,  PointCloud::Ptr cloud)
-{
-    // append only valid points
-    size_t mapSize = mapPoints.size();
-    size_t start = cloud->size();
-    for (size_t i = start; i < mapSize; ++i)
-    {
-            PointT point;
-            point.x = mapPoints[i].mWorldPos.at<float>(0);
-            point.y = mapPoints[i].mWorldPos.at<float>(1);
-            point.z = mapPoints[i].mWorldPos.at<float>(2);
-            cloud->points.push_back(point);
-    }
-}
-
-void simpleVis (pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud, boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer)
-{
-  // --------------------------------------------
-  // -----Open 3D viewer and add point cloud-----
-  // --------------------------------------------
-  viewer->setBackgroundColor (0, 0, 0);
-  viewer->removePointCloud ("sample cloud");
-
-  viewer->addPointCloud<pcl::PointXYZ> (cloud, "sample cloud");
-  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
-  viewer->addCoordinateSystem (1.0);
-  viewer->spinOnce();
-  // viewer->spin();
-}
-
 // --------------------------------
 // Transformation
 // --------------------------------

@@ -26,14 +26,8 @@
 #include "evaluate_odometry.h"
 #include "visualOdometry.h"
 #include "Frame.h"
-#include "MapPoint.h"
 
 using namespace std;
-
-typedef pcl::PointXYZ PointT;
-typedef pcl::PointCloud<PointT> PointCloud;
-
-
 
 int main(int argc, char **argv)
 {
@@ -90,59 +84,33 @@ int main(int argc, char **argv)
     
     cv::Mat frame_pose = cv::Mat::eye(4, 4, CV_64F);
     cv::Mat frame_pose32 = cv::Mat::eye(4, 4, CV_32F);
-    // cv::hconcat(cv::Mat::eye(4, 4, CV_64F), cv::Mat::zeros(3, 1, CV_64F), frame_pose);
-    // cv::vconcat(frame_pose, cv::Mat::zeros(1, 4, CV_64F), frame_pose);
 
     std::cout << "frame_pose " << frame_pose << std::endl;
-
-
     cv::Mat trajectory = cv::Mat::zeros(600, 1200, CV_8UC3);
-    pcl::visualization::PCLVisualizer *visualizer;
-
     FeatureSet currentVOFeatures;
-
-    PointCloud::Ptr features_cloud_ptr (new PointCloud);
-
     cv::Mat points4D, points3D;
-
-
-
-
     int init_frame_id = 0;
 
     // ------------------------
     // Load first images
     // ------------------------
     cv::Mat imageLeft_t0_color,  imageLeft_t0;
-
     loadImageLeft(imageLeft_t0_color,  imageLeft_t0, init_frame_id, filepath);
     
     cv::Mat imageRight_t0_color, imageRight_t0;  
     loadImageRight(imageRight_t0_color, imageRight_t0, init_frame_id, filepath);
 
-
     float fps;
-
 
     // -----------------------------------------
     // Run visual odometry
     // -----------------------------------------
-
     clock_t tic = clock();
-
-
-    std::vector<MapPoint> mapPoints;
-
     std::vector<FeaturePoint> oldFeaturePointsLeft;
     std::vector<FeaturePoint> currentFeaturePointsLeft;
 
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-
-
     for (int frame_id = init_frame_id+1; frame_id < 9000; frame_id++)
     {
-
-
 
         std::cout << std::endl << "frame_id " << frame_id << std::endl;
         // ------------
@@ -161,7 +129,6 @@ int main(int argc, char **argv)
         matchingFeatures( imageLeft_t0, imageRight_t0,
                           imageLeft_t1, imageRight_t1, 
                           currentVOFeatures,
-                          mapPoints,
                           pointsLeft_t0, 
                           pointsRight_t0, 
                           pointsLeft_t1, 
@@ -176,11 +143,8 @@ int main(int argc, char **argv)
         std::cout << "oldPointsLeft_t0 size : " << oldPointsLeft_t0.size() << std::endl;
         std::cout << "currentFramePointsLeft size : " << currentPointsLeft_t0.size() << std::endl;
         
-
         std::vector<cv::Point2f> newPoints;
         std::vector<bool> valid; // valid new points are ture
-
-
 
         // ---------------------
         // Triangulate 3D Points
@@ -196,7 +160,9 @@ int main(int argc, char **argv)
 
         cv::triangulatePoints( projMatrl,  projMatrr,  pointsLeft_t1,  pointsRight_t1,  points4D_t1);
         cv::convertPointsFromHomogeneous(points4D_t1.t(), points3D_t1);
+
         // std::cout << "points4D_t1 size : " << points4D_t1.size() << std::endl;
+
         // ---------------------
         // Tracking transfomation
         // ---------------------
@@ -208,29 +174,6 @@ int main(int argc, char **argv)
         frame_pose.convertTo(frame_pose32, CV_32F);
         points4D = frame_pose32 * points4D;
         cv::convertPointsFromHomogeneous(points4D.t(), points3D);
-
-
-        // -------------------------------
-        // Append new points to mapPoints
-        // -------------------------------
-
-        // removeExistPoints(newPoints, valid, currentPointsLeft_t0, oldPointsLeft_t0);
-        distinguishNewPoints(newPoints, valid, mapPoints, frame_id-1, 
-                             points3D_t0, points3D_t1, points3D, 
-                             currentPointsLeft_t0, currentPointsLeft_t1, currentFeaturePointsLeft, oldFeaturePointsLeft);
-        oldFeaturePointsLeft = currentFeaturePointsLeft;
-        std::cout << "mapPoints size : " << mapPoints.size() << std::endl;
-
-        // ------------------------------------------------
-        // Append feature points to Point clouds
-        // ------------------------------------------------
-        // featureSetToPointCloudsValid(points3D, features_cloud_ptr, valid);
-        mapPointsToPointCloudsAppend(mapPoints, features_cloud_ptr);
-        std::cout << std::endl << "featureSetToPointClouds size: " << features_cloud_ptr->size() << std::endl;
-        simpleVis(features_cloud_ptr, viewer);
-
-
-        // break;
 
         // ------------------------------------------------
         // Intergrating and display
@@ -265,14 +208,10 @@ int main(int argc, char **argv)
         clock_t toc = clock();
         fps = float(frame_id-init_frame_id)/(toc-tic)*CLOCKS_PER_SEC;
 
-        // pose = -pose;
         std::cout << "Pose" << pose.t() << std::endl;
         std::cout << "FPS: " << fps << std::endl;
 
         display(frame_id, trajectory, pose, pose_matrix_gt, fps, display_ground_truth);
-
-        // break;
-
 
     }
 

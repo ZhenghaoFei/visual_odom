@@ -18,22 +18,10 @@
 #include <string>
 
 #include <boost/make_shared.hpp>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_representation.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/filters/filter.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/common/common_headers.h>
 
 #include "feature.h"
 #include "matrix.h"
-#include "MapPoint.h"
 
-
-typedef pcl::PointXYZ PointT;
-typedef pcl::PointCloud<PointT> PointCloud;
 
 // --------------------------------
 // Visualization
@@ -42,13 +30,6 @@ void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points);
 
 void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose, std::vector<Matrix>& pose_matrix_gt, float fps, bool showgt);
 
-void featureSetToPointClouds(cv::Mat& points3D,  PointCloud::Ptr cloud);
-
-void featureSetToPointCloudsValid(cv::Mat& points3D,  PointCloud::Ptr cloud, std::vector<bool>& valid);
-
-void mapPointsToPointCloudsAppend(std::vector<MapPoint>& mapPoints,  PointCloud::Ptr cloud);
-
-void simpleVis (pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud, boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer);
 
 
 // --------------------------------
