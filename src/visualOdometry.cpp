@@ -84,7 +84,9 @@ void matchingFeatures(cv::Mat& imageLeft_t0, cv::Mat& imageRight_t0,
                       std::vector<cv::Point2f>&  pointsLeft_t0, 
                       std::vector<cv::Point2f>&  pointsRight_t0, 
                       std::vector<cv::Point2f>&  pointsLeft_t1, 
-                      std::vector<cv::Point2f>&  pointsRight_t1)
+                      std::vector<cv::Point2f>&  pointsRight_t1,
+                      int bucket_size,
+                      int features_per_bucket)
 {
     // ----------------------------
     // Feature detection using FAST
@@ -97,14 +99,15 @@ void matchingFeatures(cv::Mat& imageLeft_t0, cv::Mat& imageRight_t0,
 
         // append new features with old features
         appendNewFeatures(imageLeft_t0, currentVOFeatures);   
-        // std::cout << "Current feature set size: " << currentVOFeatures.points.size() << std::endl;
+        std::cout << "New feature set size: " << currentVOFeatures.points.size() << std::endl;
     }
 
     // --------------------------------------------------------
     // Feature tracking using KLT tracker, bucketing and circular matching
     // --------------------------------------------------------
-    int bucket_size = 50;
-    int features_per_bucket = 4;
+    std::cout << "Current bucketingFeatures set size: " << currentVOFeatures.points.size() << std::endl;
+
+
     bucketingFeatures(imageLeft_t0, currentVOFeatures, bucket_size, features_per_bucket);
 
     pointsLeft_t0 = currentVOFeatures.points;
@@ -146,7 +149,8 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       cv::Mat translation_mono = cv::Mat::zeros(3, 1, CV_64F);
       E = cv::findEssentialMat(pointsLeft_t1, pointsLeft_t0, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
       cv::recoverPose(E, pointsLeft_t1, pointsLeft_t0, rotation, translation_mono, focal, principle_point, mask);
-      // std::cout << "recoverPose rotation: " << rotation << std::endl;
+      std::cout << "recoverPose rotation: " << rotation << std::endl;
+      std::cout << "translation_mono: " << translation_mono << std::endl;
 
       // ------------------------------------------------
       // Translation (t) estimation by use solvePnPRansac
