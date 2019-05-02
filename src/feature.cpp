@@ -143,6 +143,7 @@ void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_
     int buckets_nums_height = image_height/bucket_size;
     int buckets_nums_width = image_width/bucket_size;
     int buckets_number = buckets_nums_height * buckets_nums_width;
+    std::cout << "buckets_number: " <<buckets_number << std::endl;
 
     std::vector<Bucket> Buckets;
 
