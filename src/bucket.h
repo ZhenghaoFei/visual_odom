@@ -14,10 +14,6 @@
 #include <sstream>
 #include <fstream>
 #include <string>
-#include <Eigen/Dense>
-#include <unsupported/Eigen/NonLinearOptimization>
-#include <unsupported/Eigen/NumericalDiff>
-#include <opencv2/core/eigen.hpp>
 #include "feature.h"
 
 class Bucket

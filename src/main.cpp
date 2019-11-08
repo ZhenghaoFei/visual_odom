@@ -14,10 +14,6 @@
 #include <sstream>
 #include <fstream>
 #include <string>
-#include <Eigen/Dense>
-#include <unsupported/Eigen/NonLinearOptimization>
-#include <unsupported/Eigen/NumericalDiff>
-#include <opencv2/core/eigen.hpp>
 
 
 
@@ -77,7 +73,7 @@ int main(int argc, char **argv)
     // Initialize variables
     // -----------------------------------------
     cv::Mat rotation = cv::Mat::eye(3, 3, CV_64F);
-    cv::Mat translation_stereo = cv::Mat::zeros(3, 1, CV_64F);
+    cv::Mat translation = cv::Mat::zeros(3, 1, CV_64F);
 
     cv::Mat pose = cv::Mat::zeros(3, 1, CV_64F);
     cv::Mat Rpose = cv::Mat::eye(3, 3, CV_64F);
@@ -99,13 +95,11 @@ int main(int argc, char **argv)
     
     cv::Mat imageRight_t0_color, imageRight_t0;  
     loadImageRight(imageRight_t0_color, imageRight_t0, init_frame_id, filepath);
-
-    float fps;
+    clock_t t_a, t_b;
 
     // -----------------------------------------
     // Run visual odometry
     // -----------------------------------------
-    clock_t tic = clock();
     std::vector<FeaturePoint> oldFeaturePointsLeft;
     std::vector<FeaturePoint> currentFeaturePointsLeft;
 
@@ -121,6 +115,7 @@ int main(int argc, char **argv)
         cv::Mat imageRight_t1_color, imageRight_t1;  
         loadImageRight(imageRight_t1_color, imageRight_t1, frame_id, filepath);
 
+        t_a = clock();
         std::vector<cv::Point2f> oldPointsLeft_t0 = currentVOFeatures.points;
 
 
@@ -139,9 +134,6 @@ int main(int argc, char **argv)
 
         std::vector<cv::Point2f>& currentPointsLeft_t0 = pointsLeft_t0;
         std::vector<cv::Point2f>& currentPointsLeft_t1 = pointsLeft_t1;
-
-        // std::cout << "oldPointsLeft_t0 size : " << oldPointsLeft_t0.size() << std::endl;
-        // std::cout << "currentFramePointsLeft size : " << currentPointsLeft_t0.size() << std::endl;
         
         std::vector<cv::Point2f> newPoints;
         std::vector<bool> valid; // valid new points are ture
@@ -152,21 +144,15 @@ int main(int argc, char **argv)
         cv::Mat points3D_t0, points4D_t0;
         cv::triangulatePoints( projMatrl,  projMatrr,  pointsLeft_t0,  pointsRight_t0,  points4D_t0);
         cv::convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
-        // std::cout << "points4D_t0 size : " << points4D_t0.size() << std::endl;
 
         cv::Mat points3D_t1, points4D_t1;
-        // std::cout << "pointsLeft_t1 size : " << pointsLeft_t1.size() << std::endl;
-        // std::cout << "pointsRight_t1 size : " << pointsRight_t1.size() << std::endl;
-
         cv::triangulatePoints( projMatrl,  projMatrr,  pointsLeft_t1,  pointsRight_t1,  points4D_t1);
         cv::convertPointsFromHomogeneous(points4D_t1.t(), points3D_t1);
-
-        // std::cout << "points4D_t1 size : " << points4D_t1.size() << std::endl;
 
         // ---------------------
         // Tracking transfomation
         // ---------------------
-        trackingFrame2Frame(projMatrl, projMatrr, pointsLeft_t0, pointsLeft_t1, points3D_t0, rotation, translation_stereo);
+        trackingFrame2Frame(projMatrl, projMatrr, pointsLeft_t0, pointsLeft_t1, points3D_t0, rotation, translation, false);
         displayTracking(imageLeft_t1, pointsLeft_t0, pointsLeft_t1);
 
 
@@ -180,38 +166,32 @@ int main(int argc, char **argv)
         // ------------------------------------------------
 
         cv::Vec3f rotation_euler = rotationMatrixToEulerAngles(rotation);
-        // std::cout << "rotation: " << rotation_euler << std::endl;
-        // std::cout << "translation: " << translation_stereo.t() << std::endl;
+
 
         cv::Mat rigid_body_transformation;
 
         if(abs(rotation_euler[1])<0.1 && abs(rotation_euler[0])<0.1 && abs(rotation_euler[2])<0.1)
         {
-            integrateOdometryStereo(frame_id, rigid_body_transformation, frame_pose, rotation, translation_stereo);
+            integrateOdometryStereo(frame_id, rigid_body_transformation, frame_pose, rotation, translation);
 
         } else {
 
             std::cout << "Too large rotation"  << std::endl;
         }
+        t_b = clock();
+        float frame_time = 1000*(double)(t_b-t_a)/CLOCKS_PER_SEC;
+        float fps = 1000/frame_time;
+        cout << "[Info] frame times (ms): " << frame_time << endl;
+        cout << "[Info] FPS: " << fps << endl;
 
         // std::cout << "rigid_body_transformation" << rigid_body_transformation << std::endl;
-
+        // std::cout << "rotation: " << rotation_euler << std::endl;
+        // std::cout << "translation: " << translation.t() << std::endl;
         // std::cout << "frame_pose" << frame_pose << std::endl;
 
 
-        Rpose =  frame_pose(cv::Range(0, 3), cv::Range(0, 3));
-        cv::Vec3f Rpose_euler = rotationMatrixToEulerAngles(Rpose);
-        // std::cout << "Rpose_euler" << Rpose_euler << std::endl;
-
-        cv::Mat pose = frame_pose.col(3).clone();
-
-        clock_t toc = clock();
-        fps = float(frame_id-init_frame_id)/(toc-tic)*CLOCKS_PER_SEC;
-
-        // std::cout << "Pose" << pose.t() << std::endl;
-        std::cout << "FPS: " << fps << std::endl;
-
-        display(frame_id, trajectory, pose, pose_matrix_gt, fps, display_ground_truth);
+        cv::Mat xyz = frame_pose.col(3).clone();
+        display(frame_id, trajectory, xyz, pose_matrix_gt, fps, display_ground_truth);
 
     }
 

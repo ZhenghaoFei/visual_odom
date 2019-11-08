@@ -1,8 +1,8 @@
 ## Stereo Visual Odometry
 
-This repository is C++ OpenCV implementation of SOFT (Stereo Odometry based on careful Feature selection and Tracking)
+This repository is C++ OpenCV implementation of Stereo Visual Odometry, using OpenCV calcOpticalFlowPyrLK for feature tracking.
 
-Original Paper: https://lamor.fer.hr/images/50020776/Cvisic2017.pdf
+Reference Paper: https://lamor.fer.hr/images/50020776/Cvisic2017.pdf
 
 Demo vedio: https://www.youtube.com/watch?v=Z3S5J_BHQVw&t=17s
 
@@ -29,7 +29,7 @@ mkdir build
 cd build
 cmake ..
 make -j4
-./run /PathtoKITTI/sequences/00/ ../calibration/kitti00.yaml
+./run /PathToKITTI/sequences/00/ ../calibration/kitti00.yaml
 ```
 ### Reference code
 1. [Monocular visual odometry algorithm](https://github.com/avisingh599/mono-vo/blob/master/README.md)

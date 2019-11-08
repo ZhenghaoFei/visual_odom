@@ -104,7 +104,7 @@ void matchingFeatures(cv::Mat& imageLeft_t0, cv::Mat& imageRight_t0,
     // Feature tracking using KLT tracker, bucketing and circular matching
     // --------------------------------------------------------
     int bucket_size = 50;
-    int features_per_bucket = 4;
+    int features_per_bucket = 1;
     bucketingFeatures(imageLeft_t0, currentVOFeatures, bucket_size, features_per_bucket);
 
     pointsLeft_t0 = currentVOFeatures.points;
@@ -130,7 +130,8 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
                          std::vector<cv::Point2f>&  pointsLeft_t1, 
                          cv::Mat& points3D_t0,
                          cv::Mat& rotation,
-                         cv::Mat& translation)
+                         cv::Mat& translation,
+                         bool mono_rotation)
 {
 
       // Calculate frame to frame transformation
@@ -144,8 +145,8 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       //recovering the pose and the essential cv::matrix
       cv::Mat E, mask;
       cv::Mat translation_mono = cv::Mat::zeros(3, 1, CV_64F);
-      E = cv::findEssentialMat(pointsLeft_t1, pointsLeft_t0, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
-      cv::recoverPose(E, pointsLeft_t1, pointsLeft_t0, rotation, translation_mono, focal, principle_point, mask);
+      E = cv::findEssentialMat(pointsLeft_t0, pointsLeft_t1, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
+      cv::recoverPose(E, pointsLeft_t0, pointsLeft_t1, rotation, translation_mono, focal, principle_point, mask);
       // std::cout << "recoverPose rotation: " << rotation << std::endl;
 
       // ------------------------------------------------
@@ -159,8 +160,8 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
                                                    projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
 
       int iterationsCount = 500;        // number of Ransac iterations.
-      float reprojectionError = 2.0;    // maximum allowed distance to consider it an inlier.
-      float confidence = 0.95;          // RANSAC successful confidence.
+      float reprojectionError = .5;    // maximum allowed distance to consider it an inlier.
+      float confidence = 0.999;          // RANSAC successful confidence.
       bool useExtrinsicGuess = true;
       int flags =cv::SOLVEPNP_ITERATIVE;
 
@@ -168,8 +169,12 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
                           useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                           inliers, flags );
 
-      translation = -translation;
-      // std::cout << "inliers size: " << inliers.size() << std::endl;
+      if (!mono_rotation)
+      {
+        cv::Rodrigues(rvec, rotation);
+      }
+
+      std::cout << "[trackingFrame2Frame] inliers size: " << inliers.size() << std::endl;
 
 }
 
@@ -203,148 +208,3 @@ void displayTracking(cv::Mat& imageLeft_t1,
 
       cv::imshow("vis ", vis );  
 }
-
-void visualOdometry(int current_frame_id, std::string filepath,
-                    cv::Mat& projMatrl, cv::Mat& projMatrr,
-                    cv::Mat& rotation, cv::Mat& translation_mono, cv::Mat& translation_stereo, 
-                    cv::Mat& image_left_t0,
-                    cv::Mat& image_right_t0,
-                    FeatureSet& current_features,
-                    cv::Mat& points4D_t0)
-{
-
-    // ------------
-    // Load images
-    // ------------
-    cv::Mat image_left_t1_color,  image_left_t1;
-    loadImageLeft(image_left_t1_color,  image_left_t1, current_frame_id + 1, filepath);
-    
-    cv::Mat image_right_t1_color, image_right_t1;  
-    loadImageRight(image_right_t1_color, image_right_t1, current_frame_id + 1, filepath);
-
-    // ----------------------------
-    // Feature detection using FAST
-    // ----------------------------
-    std::vector<cv::Point2f>  points_left_t0, points_right_t0, points_left_t1, points_right_t1, points_left_t0_return;   //vectors to store the coordinates of the feature points
-
-    if (current_features.size() < 2000)
-    {
-        // use all new features
-        // featureDetectionFast(image_left_t0, current_features.points);     
-        // current_features.ages = std::vector<int>(current_features.points.size(), 0);
-
-        // append new features with old features
-        appendNewFeatures(image_left_t0, current_features);   
-
-        std::cout << "Current feature set size: " << current_features.points.size() << std::endl;
-    }
-
-
-    // --------------------------------------------------------
-    // Feature tracking using KLT tracker, bucketing and circular matching
-    // --------------------------------------------------------
-    int bucket_size = 50;
-    int features_per_bucket = 4;
-    bucketingFeatures(image_left_t0, current_features, bucket_size, features_per_bucket);
-
-    points_left_t0 = current_features.points;
-    
-    circularMatching(image_left_t0, image_right_t0, image_left_t1, image_right_t1,
-                     points_left_t0, points_right_t0, points_left_t1, points_right_t1, points_left_t0_return, current_features);
-
-    std::vector<bool> status;
-    checkValidMatch(points_left_t0, points_left_t0_return, status, 0);
-
-    removeInvalidPoints(points_left_t0, status);
-    removeInvalidPoints(points_left_t0_return, status);
-    removeInvalidPoints(points_left_t1, status);
-    removeInvalidPoints(points_right_t0, status);
-
-    current_features.points = points_left_t1;
-
-    // -----------------------------------------------------------
-    // Rotation(R) estimation using Nister's Five Points Algorithm
-    // -----------------------------------------------------------
-    double focal = projMatrl.at<float>(0, 0);
-    cv::Point2d principle_point(projMatrl.at<float>(0, 2), projMatrl.at<float>(1, 2));
-
-    //recovering the pose and the essential cv::matrix
-    cv::Mat E, mask;
-    E = cv::findEssentialMat(points_left_t1, points_left_t0, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
-    cv::recoverPose(E, points_left_t1, points_left_t0, rotation, translation_mono, focal, principle_point, mask);
-
-    // ---------------------
-    // Triangulate 3D Points
-    // ---------------------
-    cv::Mat points3D_t0;
-    cv::triangulatePoints( projMatrl,  projMatrr,  points_left_t0,  points_right_t0,  points4D_t0);
-
-    cv::convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
-
-
-    // ------------------------------------------------
-    // Translation (t) estimation by use solvePnPRansac
-    // ------------------------------------------------
-    cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);  
-    cv::Mat inliers;  
-    cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
-    cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) << projMatrl.at<float>(0, 0), projMatrl.at<float>(0, 1), projMatrl.at<float>(0, 2),
-                                                 projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
-                                                 projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
-
-    int iterationsCount = 500;        // number of Ransac iterations.
-    float reprojectionError = 2.0;    // maximum allowed distance to consider it an inlier.
-    float confidence = 0.95;          // RANSAC successful confidence.
-    bool useExtrinsicGuess = true;
-    int flags =cv::SOLVEPNP_ITERATIVE;
-
-    cv::solvePnPRansac( points3D_t0, points_left_t1, intrinsic_matrix, distCoeffs, rvec, translation_stereo,
-                        useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
-                        inliers, flags );
-
-    std::cout << "inliers size: " << inliers.size() << std::endl;
-
-    // translation_stereo = -translation_stereo;
-
-    // std::cout << "rvec : " <<rvec <<std::endl;
-    // std::cout << "translation_stereo : " <<translation_stereo <<std::endl;
-
-    // -----------------------------------------
-    // Prepare image for next frame
-    // -----------------------------------------
-    image_left_t0 = image_left_t1;
-    image_right_t0 = image_right_t1;
-
-
-    // -----------------------------------------
-    // Display
-    // -----------------------------------------
-
-    int radius = 2;
-    // cv::Mat vis = image_left_t0.clone();
-
-    cv::Mat vis;
-
-    cv::cvtColor(image_left_t1, vis, CV_GRAY2BGR, 3);
-
-
-    for (int i = 0; i < points_left_t0.size(); i++)
-    {
-        circle(vis, cvPoint(points_left_t0[i].x, points_left_t0[i].y), radius, CV_RGB(0,255,0));
-    }
-
-    for (int i = 0; i < points_left_t1.size(); i++)
-    {
-        circle(vis, cvPoint(points_left_t1[i].x, points_left_t1[i].y), radius, CV_RGB(255,0,0));
-    }
-
-    for (int i = 0; i < points_left_t1.size(); i++)
-    {
-        cv::line(vis, points_left_t0[i], points_left_t1[i], CV_RGB(0,255,0));
-    }
-
-    imshow("vis ", vis );
-    
-}
-
-
