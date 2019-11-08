@@ -13,8 +13,6 @@ Demo vedio: https://www.youtube.com/watch?v=Z3S5J_BHQVw&t=17s
 ### Requirements
 [OpenCV 3.0](https://opencv.org/)
 
-[Eigen 3.34](https://eigen.tuxfamily.org/dox/GettingStarted.html)
-
 ### Dataset
 Tested on [KITTI](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) odometry dataset
 
