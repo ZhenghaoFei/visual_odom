@@ -1,6 +1,22 @@
 #include "feature.h"
 #include "bucket.h"
 
+#if gpu_build
+static void download(const cv::cuda::GpuMat& d_mat, std::vector<cv::Point2f>& vec)
+{
+    vec.resize(d_mat.cols);
+    cv::Mat mat(1, d_mat.cols, CV_32FC2, (void*)&vec[0]);
+    d_mat.download(mat);
+}
+
+static void download(const cv::cuda::GpuMat& d_mat, std::vector<uchar>& vec)
+{
+    vec.resize(d_mat.cols);
+    cv::Mat mat(1, d_mat.cols, CV_8UC1, (void*)&vec[0]);
+    d_mat.download(mat);
+}
+#endif
+
 void deleteUnmatchFeatures(std::vector<cv::Point2f>& points0, std::vector<cv::Point2f>& points1, std::vector<uchar>& status)
 {
   //getting rid of points for which the KLT tracking failed or those who have gone outside the frame
@@ -131,6 +147,61 @@ void circularMatching(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat
   // std::cout << "points : " << points_l_0.size() << " "<< points_r_0.size() << " "<< points_r_1.size() << " "<< points_l_1.size() << " "<<std::endl;
 }
 
+#if gpu_build
+void circularMatching_gpu(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat img_r_1,
+                      std::vector<cv::Point2f>& points_l_0, std::vector<cv::Point2f>& points_r_0,
+                      std::vector<cv::Point2f>& points_l_1, std::vector<cv::Point2f>& points_r_1,
+                      std::vector<cv::Point2f>& points_l_0_return,
+                      FeatureSet& current_features) { 
+  
+  //this function automatically gets rid of points for which tracking fails
+                  
+  cv::Size winSize=cv::Size(21,21);                                                                                             
+
+  std::vector<uchar> status0;
+  std::vector<uchar> status1;
+  std::vector<uchar> status2;
+  std::vector<uchar> status3;
+  
+  clock_t tic_gpu = clock();
+  cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> d_pyrLK_sparse = cv::cuda::SparsePyrLKOpticalFlow::create(
+            winSize, 3, 30);
+  cv::cuda::GpuMat img_l_0_gpu(img_l_0);
+  cv::cuda::GpuMat img_r_0_gpu(img_r_0);
+  cv::cuda::GpuMat img_l_1_gpu(img_l_1);
+  cv::cuda::GpuMat img_r_1_gpu(img_r_1);
+  cv::cuda::GpuMat status0_gpu(status0);
+  cv::cuda::GpuMat status1_gpu(status1);
+  cv::cuda::GpuMat status2_gpu(status2);
+  cv::cuda::GpuMat status3_gpu(status3);
+  cv::cuda::GpuMat points_l_0_gpu(points_l_0);
+  cv::cuda::GpuMat points_r_0_gpu(points_r_0);
+  cv::cuda::GpuMat points_l_1_gpu(points_l_1);
+  cv::cuda::GpuMat points_r_1_gpu(points_r_1);
+  cv::cuda::GpuMat points_l_0_ret_gpu(points_l_0_return);
+
+  d_pyrLK_sparse->calc(img_l_0_gpu, img_r_0_gpu, points_l_0_gpu, points_r_0_gpu, status0_gpu);
+  d_pyrLK_sparse->calc(img_r_0_gpu, img_r_1_gpu, points_r_0_gpu, points_r_1_gpu, status1_gpu);
+  d_pyrLK_sparse->calc(img_r_1_gpu, img_l_1_gpu, points_r_1_gpu, points_l_1_gpu, status2_gpu);
+  d_pyrLK_sparse->calc(img_l_1_gpu, img_l_0_gpu, points_l_1_gpu, points_l_0_ret_gpu, status3_gpu);
+
+  download(status0_gpu, status0);
+  download(status1_gpu, status1);
+  download(status2_gpu, status2);
+  download(status3_gpu, status3);
+  download(points_l_0_gpu, points_l_0);
+  download(points_l_1_gpu, points_l_1);
+  download(points_r_0_gpu, points_r_0);
+  download(points_r_1_gpu, points_r_1);
+  download(points_l_0_ret_gpu, points_l_0_return);
+  
+  clock_t toc_gpu = clock();
+  std::cerr << "calcOpticalFlowPyrLK gpu time: " << float(toc_gpu - tic_gpu)/CLOCKS_PER_SEC*1000 << "ms" << std::endl;
+
+  deleteUnmatchFeaturesCircle(points_l_0, points_r_0, points_r_1, points_l_1, points_l_0_return,
+                        status0, status1, status2, status3, current_features.ages);
+}
+#endif
 
 void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_size, int features_per_bucket)
 {
