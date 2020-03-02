@@ -12,7 +12,7 @@ void drawFeaturePoints(cv::Mat image, std::vector<cv::Point2f>& points)
     
     for (int i = 0; i < points.size(); i++)
     {
-        circle(image, cvPoint(points[i].x, points[i].y), radius, CV_RGB(255,255,255));
+        circle(image, cv::Point(points[i].x, points[i].y), radius, CV_RGB(255,255,255));
     }
 }
 

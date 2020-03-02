@@ -7,9 +7,13 @@
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
+#define gpu_build 1
+
+#if gpu_build
 #include <opencv2/cudaoptflow.hpp>
 #include <opencv2/cudaimgproc.hpp>
 #include <opencv2/cudaarithm.hpp>
+#endif
 
 #include <iostream>
 #include <ctype.h>
@@ -20,8 +24,6 @@
 #include <sstream>
 #include <fstream>
 #include <string>
-
-#define gpu_build 1
 
 struct FeaturePoint{
   cv::Point2f  point;
