@@ -152,7 +152,10 @@ int main(int argc, char **argv)
         // ---------------------
         // Tracking transfomation
         // ---------------------
+	clock_t tic_gpu = clock();
         trackingFrame2Frame(projMatrl, projMatrr, pointsLeft_t0, pointsLeft_t1, points3D_t0, rotation, translation, false);
+	clock_t toc_gpu = clock();
+	std::cerr << "tracking frame 2 frame: " << float(toc_gpu - tic_gpu)/CLOCKS_PER_SEC*1000 << "ms" << std::endl;
         displayTracking(imageLeft_t1, pointsLeft_t0, pointsLeft_t1);
 
 
