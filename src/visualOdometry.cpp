@@ -158,8 +158,7 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       // ------------------------------------------------
       // Translation (t) estimation by use solvePnPRansac
       // ------------------------------------------------
-      cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);  
-      cv::Mat inliers;  
+      cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);   
       cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
       cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) << projMatrl.at<float>(0, 0), projMatrl.at<float>(0, 1), projMatrl.at<float>(0, 2),
                                                    projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
@@ -168,13 +167,20 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       int iterationsCount = 500;        // number of Ransac iterations.
       float reprojectionError = .5;    // maximum allowed distance to consider it an inlier.
       float confidence = 0.999;          // RANSAC successful confidence.
-      bool useExtrinsicGuess = true;
+      bool useExtrinsicGuess = false;
       int flags =cv::SOLVEPNP_ITERATIVE;
 
+      #if !gpu_build
+      cv::Mat inliers; 
       cv::solvePnPRansac( points3D_t0, pointsLeft_t1, intrinsic_matrix, distCoeffs, rvec, translation,
                           useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                           inliers, flags );
-
+      #else
+      std::vector<int> inliers;
+      cv::cuda::solvePnPRansac(points3D_t0.t(), cv::Mat(1, (int)pointsLeft_t1.size(), CV_32FC2, &pointsLeft_t1[0]),
+                            intrinsic_matrix, cv::Mat(1, 8, CV_32F, cv::Scalar::all(0)),
+                            rvec, translation, false, 200, 0.5, 20, &inliers);
+      #endif
       if (!mono_rotation)
       {
         cv::Rodrigues(rvec, rotation);

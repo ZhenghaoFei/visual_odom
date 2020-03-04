@@ -13,6 +13,7 @@
 #include <opencv2/cudaoptflow.hpp>
 #include <opencv2/cudaimgproc.hpp>
 #include <opencv2/cudaarithm.hpp>
+#include <opencv2/cudalegacy.hpp>
 #endif
 
 #include <iostream>
