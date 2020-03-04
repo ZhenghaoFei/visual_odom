@@ -167,7 +167,7 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       int iterationsCount = 500;        // number of Ransac iterations.
       float reprojectionError = .5;    // maximum allowed distance to consider it an inlier.
       float confidence = 0.999;          // RANSAC successful confidence.
-      bool useExtrinsicGuess = false;
+      bool useExtrinsicGuess = true;
       int flags =cv::SOLVEPNP_ITERATIVE;
 
       #if !gpu_build
