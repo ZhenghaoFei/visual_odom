@@ -149,7 +149,7 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       //recovering the pose and the essential cv::matrix
       cv::Mat E, mask;
       cv::Mat translation_mono = cv::Mat::zeros(3, 1, CV_64F);
-      if(!mono_rotation)
+      if(mono_rotation)
       {
       	E = cv::findEssentialMat(pointsLeft_t0, pointsLeft_t1, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
       	cv::recoverPose(E, pointsLeft_t0, pointsLeft_t1, rotation, translation_mono, focal, principle_point, mask);
