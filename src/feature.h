@@ -7,7 +7,7 @@
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
-#define gpu_build 1
+#define gpu_build 0
 
 #if gpu_build
 #include <opencv2/cudaoptflow.hpp>
