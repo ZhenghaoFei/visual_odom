@@ -168,9 +168,9 @@ int main(int argc, char **argv)
         cv::triangulatePoints( projMatrl,  projMatrr,  pointsLeft_t0,  pointsRight_t0,  points4D_t0);
         cv::convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
 
-        cv::Mat points3D_t1, points4D_t1;
+/*        cv::Mat points3D_t1, points4D_t1;
         cv::triangulatePoints( projMatrl,  projMatrr,  pointsLeft_t1,  pointsRight_t1,  points4D_t1);
-        cv::convertPointsFromHomogeneous(points4D_t1.t(), points3D_t1);
+        cv::convertPointsFromHomogeneous(points4D_t1.t(), points3D_t1);*/
 
         // ---------------------
         // Tracking transfomation
@@ -182,10 +182,10 @@ int main(int argc, char **argv)
         displayTracking(imageLeft_t1, pointsLeft_t0, pointsLeft_t1);
 
 
-        points4D = points4D_t0;
+/*        points4D = points4D_t0;
         frame_pose.convertTo(frame_pose32, CV_32F);
         points4D = frame_pose32 * points4D;
-        cv::convertPointsFromHomogeneous(points4D.t(), points3D);
+        cv::convertPointsFromHomogeneous(points4D.t(), points3D);*/
 
         // ------------------------------------------------
         // Intergrating and display
