@@ -113,7 +113,7 @@ void matchingFeatures(cv::Mat& imageLeft_t0, cv::Mat& imageRight_t0,
     	circularMatching_gpu(imageLeft_t0, imageRight_t0, imageLeft_t1, imageRight_t1,
                      pointsLeft_t0, pointsRight_t0, pointsLeft_t1, pointsRight_t1, pointsLeftReturn_t0, currentVOFeatures);
     #else
-	circularMatching(imageLeft_t0, imageRight_t0, imageLeft_t1, imageRight_t1,
+	    circularMatching(imageLeft_t0, imageRight_t0, imageLeft_t1, imageRight_t1,
                      pointsLeft_t0, pointsRight_t0, pointsLeft_t1, pointsRight_t1, pointsLeftReturn_t0, currentVOFeatures);
     #endif
     std::vector<bool> status;
@@ -170,12 +170,13 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       bool useExtrinsicGuess = true;
       int flags =cv::SOLVEPNP_ITERATIVE;
 
-      #if !gpu_build
+      #if 1
       cv::Mat inliers; 
       cv::solvePnPRansac( points3D_t0, pointsLeft_t1, intrinsic_matrix, distCoeffs, rvec, translation,
                           useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                           inliers, flags );
-      #else
+      #endif
+      #if 0
       std::vector<int> inliers;
       cv::cuda::solvePnPRansac(points3D_t0.t(), cv::Mat(1, (int)pointsLeft_t1.size(), CV_32FC2, &pointsLeft_t1[0]),
                             intrinsic_matrix, cv::Mat(1, 8, CV_32F, cv::Scalar::all(0)),

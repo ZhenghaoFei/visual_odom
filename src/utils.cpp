@@ -172,7 +172,7 @@ void loadGyro(std::string filename, std::vector<std::vector<double>>& time_gyros
 void loadImageLeft(cv::Mat& image_color, cv::Mat& image_gary, int frame_id, std::string filepath){
     char file[200];
     sprintf(file, "image_0/%06d.png", frame_id);
-    
+
     // sprintf(file, "image_0/%010d.png", frame_id);
     std::string filename = filepath + std::string(file);
     image_color = cv::imread(filename, cv::IMREAD_COLOR);

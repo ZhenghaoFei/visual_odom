@@ -21,7 +21,6 @@
 #include "feature.h"
 #include "matrix.h"
 
-
 // --------------------------------
 // Visualization
 // --------------------------------

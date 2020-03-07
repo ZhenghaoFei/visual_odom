@@ -15,13 +15,14 @@
 #include <fstream>
 #include <string>
 
-
-
 #include "feature.h"
 #include "utils.h"
 #include "evaluate_odometry.h"
 #include "visualOdometry.h"
 #include "Frame.h"
+
+#include "camera_object.h"
+#include "rgbd_standalone.h"
 
 using namespace std;
 
@@ -32,6 +33,7 @@ int main(int argc, char **argv)
     // Load images and calibration parameters
     // -----------------------------------------
     bool display_ground_truth = false;
+    bool use_intel_rgbd = false;
     std::vector<Matrix> pose_matrix_gt;
     if(argc == 4)
     {   display_ground_truth = true;
@@ -43,13 +45,15 @@ int main(int argc, char **argv)
     }
     if(argc < 3)
     {
-        cerr << "Usage: ./run path_to_sequence path_to_calibration [optional]path_to_ground_truth_pose" << endl;
+        cerr << "Usage: ./run path_to_sequence(rgbd for using intel rgbd) path_to_calibration [optional]path_to_ground_truth_pose" << endl;
         return 1;
     }
 
     // Sequence
     string filepath = string(argv[1]);
     cout << "Filepath: " << filepath << endl;
+
+    if(filepath == "rgbd") use_intel_rgbd = true;
 
     // Camera calibration
     string strSettingPath = string(argv[2]);
@@ -90,11 +94,22 @@ int main(int argc, char **argv)
     // ------------------------
     // Load first images
     // ------------------------
-    cv::Mat imageLeft_t0_color,  imageLeft_t0;
-    loadImageLeft(imageLeft_t0_color,  imageLeft_t0, init_frame_id, filepath);
-    
-    cv::Mat imageRight_t0_color, imageRight_t0;  
-    loadImageRight(imageRight_t0_color, imageRight_t0, init_frame_id, filepath);
+    cv::Mat imageRight_t0,  imageLeft_t0;
+    CameraBase *pCamera = NULL;
+    if(use_intel_rgbd)
+    {   
+        pCamera = new Intel_V4L2;
+        for (int throw_frames = 10 ; throw_frames >=0 ; throw_frames--)
+            pCamera->getLRFrames(imageLeft_t0,imageRight_t0);
+    }
+    else
+    {
+        cv::Mat imageLeft_t0_color;
+        loadImageLeft(imageLeft_t0_color,  imageLeft_t0, init_frame_id, filepath);
+        
+        cv::Mat imageRight_t0_color;  
+        loadImageRight(imageRight_t0_color, imageRight_t0, init_frame_id, filepath);
+    }
     clock_t t_a, t_b;
 
     // -----------------------------------------
@@ -106,14 +121,23 @@ int main(int argc, char **argv)
     for (int frame_id = init_frame_id+1; frame_id < 9000; frame_id++)
     {
 
-        std::cout << std::endl << "frame_id " << frame_id << std::endl;
+        std::cout << std::endl << "frame id " << frame_id << std::endl;
         // ------------
         // Load images
         // ------------
-        cv::Mat imageLeft_t1_color,  imageLeft_t1;
-        loadImageLeft(imageLeft_t1_color,  imageLeft_t1, frame_id, filepath);        
-        cv::Mat imageRight_t1_color, imageRight_t1;  
-        loadImageRight(imageRight_t1_color, imageRight_t1, frame_id, filepath);
+        cv::Mat imageRight_t1,  imageLeft_t1;
+        if(use_intel_rgbd)
+        {
+            pCamera->getLRFrames(imageLeft_t1,imageRight_t1);
+        }
+        else
+        {
+            cv::Mat imageLeft_t1_color;
+            loadImageLeft(imageLeft_t1_color,  imageLeft_t1, frame_id, filepath);        
+            cv::Mat imageRight_t1_color;  
+            loadImageRight(imageRight_t1_color, imageRight_t1, frame_id, filepath);            
+        }
+
 
         t_a = clock();
         std::vector<cv::Point2f> oldPointsLeft_t0 = currentVOFeatures.points;
