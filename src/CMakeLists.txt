@@ -1,16 +1,20 @@
 
 find_package( OpenCV REQUIRED )
 
+
 add_subdirectory(evaluate)
 
 include_directories(${OpenCV_INCLUDE_DIRS} )
 include_directories(evaluate)
 
+#find_package(CUDA  REQUIRED)
+#include_directories("${CUDA_INCLUDE_DIRS}")
 
 add_library(feature SHARED "feature.cpp")
 add_library(bucket SHARED "bucket.cpp")
 add_library(utils SHARED "utils.cpp")
 add_library(visualOdometry SHARED "visualOdometry.cpp")
+add_library(rgbd_standalone SHARED "rgbd_standalone.cpp")
 
 
 
@@ -28,4 +32,4 @@ target_link_libraries( visualOdometry utils bucket feature ${OpenCV_LIBS})
 
 
 target_link_libraries( Frame ${OpenCV_LIBS} )
-target_link_libraries( run ${OpenCV_LIBS} bucket feature utils visualOdometry Frame  )
+target_link_libraries( run ${OpenCV_LIBS} bucket feature utils visualOdometry Frame rgbd_standalone )

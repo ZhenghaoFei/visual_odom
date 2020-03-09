@@ -1,5 +1,5 @@
 #include "visualOdometry.h"
-
+using namespace cv;
 
 cv::Mat euler2rot(cv::Mat& rotationMatrix, const cv::Mat & euler)
 {
@@ -103,15 +103,19 @@ void matchingFeatures(cv::Mat& imageLeft_t0, cv::Mat& imageRight_t0,
     // --------------------------------------------------------
     // Feature tracking using KLT tracker, bucketing and circular matching
     // --------------------------------------------------------
-    int bucket_size = 50;
+    int bucket_size = imageLeft_t0.rows/10;
     int features_per_bucket = 1;
     bucketingFeatures(imageLeft_t0, currentVOFeatures, bucket_size, features_per_bucket);
 
     pointsLeft_t0 = currentVOFeatures.points;
     
-    circularMatching(imageLeft_t0, imageRight_t0, imageLeft_t1, imageRight_t1,
+    #if gpu_build
+    	circularMatching_gpu(imageLeft_t0, imageRight_t0, imageLeft_t1, imageRight_t1,
                      pointsLeft_t0, pointsRight_t0, pointsLeft_t1, pointsRight_t1, pointsLeftReturn_t0, currentVOFeatures);
-
+    #else
+	    circularMatching(imageLeft_t0, imageRight_t0, imageLeft_t1, imageRight_t1,
+                     pointsLeft_t0, pointsRight_t0, pointsLeft_t1, pointsRight_t1, pointsLeftReturn_t0, currentVOFeatures);
+    #endif
     std::vector<bool> status;
     checkValidMatch(pointsLeft_t0, pointsLeftReturn_t0, status, 0);
 
@@ -145,15 +149,16 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       //recovering the pose and the essential cv::matrix
       cv::Mat E, mask;
       cv::Mat translation_mono = cv::Mat::zeros(3, 1, CV_64F);
-      E = cv::findEssentialMat(pointsLeft_t0, pointsLeft_t1, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
-      cv::recoverPose(E, pointsLeft_t0, pointsLeft_t1, rotation, translation_mono, focal, principle_point, mask);
-      // std::cout << "recoverPose rotation: " << rotation << std::endl;
-
+      if(mono_rotation)
+      {
+      	E = cv::findEssentialMat(pointsLeft_t0, pointsLeft_t1, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
+      	cv::recoverPose(E, pointsLeft_t0, pointsLeft_t1, rotation, translation_mono, focal, principle_point, mask);
+      	// std::cout << "recoverPose rotation: " << rotation << std::endl;
+      }
       // ------------------------------------------------
       // Translation (t) estimation by use solvePnPRansac
       // ------------------------------------------------
-      cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);  
-      cv::Mat inliers;  
+      cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);   
       cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
       cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) << projMatrl.at<float>(0, 0), projMatrl.at<float>(0, 1), projMatrl.at<float>(0, 2),
                                                    projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
@@ -165,10 +170,18 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       bool useExtrinsicGuess = true;
       int flags =cv::SOLVEPNP_ITERATIVE;
 
+      #if 1
+      cv::Mat inliers; 
       cv::solvePnPRansac( points3D_t0, pointsLeft_t1, intrinsic_matrix, distCoeffs, rvec, translation,
                           useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                           inliers, flags );
-
+      #endif
+      #if 0
+      std::vector<int> inliers;
+      cv::cuda::solvePnPRansac(points3D_t0.t(), cv::Mat(1, (int)pointsLeft_t1.size(), CV_32FC2, &pointsLeft_t1[0]),
+                            intrinsic_matrix, cv::Mat(1, 8, CV_32F, cv::Scalar::all(0)),
+                            rvec, translation, false, 200, 0.5, 20, &inliers);
+      #endif
       if (!mono_rotation)
       {
         cv::Rodrigues(rvec, rotation);
@@ -188,17 +201,17 @@ void displayTracking(cv::Mat& imageLeft_t1,
       int radius = 2;
       cv::Mat vis;
 
-      cv::cvtColor(imageLeft_t1, vis, CV_GRAY2BGR, 3);
+      cv::cvtColor(imageLeft_t1, vis, cv::COLOR_GRAY2BGR, 3);
 
 
       for (int i = 0; i < pointsLeft_t0.size(); i++)
       {
-          cv::circle(vis, cvPoint(pointsLeft_t0[i].x, pointsLeft_t0[i].y), radius, CV_RGB(0,255,0));
+          cv::circle(vis, cv::Point(pointsLeft_t0[i].x, pointsLeft_t0[i].y), radius, CV_RGB(0,255,0));
       }
 
       for (int i = 0; i < pointsLeft_t1.size(); i++)
       {
-          cv::circle(vis, cvPoint(pointsLeft_t1[i].x, pointsLeft_t1[i].y), radius, CV_RGB(255,0,0));
+          cv::circle(vis, cv::Point(pointsLeft_t1[i].x, pointsLeft_t1[i].y), radius, CV_RGB(255,0,0));
       }
 
       for (int i = 0; i < pointsLeft_t1.size(); i++)
