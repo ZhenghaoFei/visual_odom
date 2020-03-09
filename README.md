@@ -29,6 +29,15 @@ cmake ..
 make -j4
 ./run /PathToKITTI/sequences/00/ ../calibration/kitti00.yaml
 ```
+
+### GPU CUDA acceleration
+Thanks to ![alt text](https://github.com/ZhenghaoFei/visual_odom/commits?author=temburuyk "temburuyk"), the most time consumtion function circularMatching() can be accelerated using CUDA and greately improve the performance.  
+To enable GPU acceleration
+1. Make sure you have CUDA compatible GPU.
+2. Install CUDA, compile and install CUDA supported OpenCV 
+3. Change gpu_build to 1 in ![alt text](https://github.com/ZhenghaoFei/visual_odom/blob/master/src/feature.h "/src/feature/h")
+4. Compile & Run
+
 ### Reference code
 1. [Monocular visual odometry algorithm](https://github.com/avisingh599/mono-vo/blob/master/README.md)
 
