@@ -29,6 +29,9 @@ using namespace std;
 int main(int argc, char **argv)
 {
 
+    #if USE_C
+        printf("haha\n");
+    #endif
     // -----------------------------------------
     // Load images and calibration parameters
     // -----------------------------------------

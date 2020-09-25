@@ -7,8 +7,12 @@ add_subdirectory(evaluate)
 include_directories(${OpenCV_INCLUDE_DIRS} )
 include_directories(evaluate)
 
-find_package(CUDA)
-include_directories("${CUDA_INCLUDE_DIRS}")
+if(USE_CUDA)
+    find_package(CUDA)
+    include_directories("${CUDA_INCLUDE_DIRS}")
+    add_definitions(-DUSE_CUDA)
+
+endif(USE_CUDA)
 
 add_library(feature SHARED "feature.cpp")
 add_library(bucket SHARED "bucket.cpp")
