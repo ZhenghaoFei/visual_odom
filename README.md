@@ -12,6 +12,10 @@ Demo vedio: https://www.youtube.com/watch?v=Z3S5J_BHQVw&t=17s
 
 ### Requirements
 [OpenCV 3.0](https://opencv.org/)
+```bash
+sudo apt update
+sudo apt install libopencv-dev 
+```
 
 ### Dataset
 Tested on [KITTI](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) odometry dataset

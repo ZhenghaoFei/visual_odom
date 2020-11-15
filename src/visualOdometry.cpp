@@ -109,7 +109,7 @@ void matchingFeatures(cv::Mat& imageLeft_t0, cv::Mat& imageRight_t0,
 
     pointsLeft_t0 = currentVOFeatures.points;
     
-    #if gpu_build
+    #if DUSE_CUDA
     	circularMatching_gpu(imageLeft_t0, imageRight_t0, imageLeft_t1, imageRight_t1,
                      pointsLeft_t0, pointsRight_t0, pointsLeft_t1, pointsRight_t1, pointsLeftReturn_t0, currentVOFeatures);
     #else
