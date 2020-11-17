@@ -1,3 +1,4 @@
+#### Install CUDA
 #### Comiple CUDA OPENCV && OPENCV_contrib
 ```bash
 sudo apt-get install libjpeg8-dev libtiff5-dev libjasper-dev libpng12-dev
@@ -26,7 +27,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release     \
          -DBUILD_JPEG=OFF     \
          -DBUILD_JASPER=OFF     \
          -DBUILD_ZLIB=OFF     \
-         -DBUILD_EXAMPLES=ON     \
+         -DBUILD_EXAMPLES=OFF     \
          -DBUILD_JAVA=OFF     \
          -DBUILD_opencv_python2=ON     \
          -DBUILD_opencv_python3=OFF     \
@@ -41,7 +42,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release     \
          -DWITH_TBB=ON     \
          -DWITH_1394=OFF     \
          -DWITH_OPENEXR=OFF    \
-         -DINSTALL_C_EXAMPLES=ON     \
+         -DINSTALL_C_EXAMPLES=OFF     \
          -DINSTALL_TESTS=OFF  \
          -DWITH_CUDA=ON \
          -DOPENCV_EXTRA_MODULES_PATH=$opencv_contrib_path

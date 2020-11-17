@@ -17,7 +17,7 @@ If you are not using CUDA:
 sudo apt update
 sudo apt install libopencv-dev 
 ```
-If you use CUDA, check [InstallOPENCV.md](https://github.com/ZhenghaoFei/visual_odom/InstallOPENCV.md)
+If you use CUDA, compile and install CUDA enabled OPENCV. check [InstallOPENCV.md](https://github.com/ZhenghaoFei/visual_odom/InstallOPENCV.md)
 
 ### Dataset
 Tested on [KITTI](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) odometry dataset
@@ -37,7 +37,7 @@ make -j4
 ```
 
 ### GPU CUDA acceleration
-Thanks to [temburuyk](https://github.com/ZhenghaoFei/visual_odom/commits?author=temburuyk), the most time consumtion function circularMatching() can be accelerated using CUDA and greately improve the performance.  
+Thanks to [temburuyk](https://github.com/ZhenghaoFei/visual_odom/commits?author=temburuyk), the most time consumtion function circularMatching() can be accelerated using CUDA and greately improve the performance. 60~80 FPS on a decent NVIDIA Card. 
 To enable GPU acceleration
 1. Make sure you have CUDA compatible GPU.
 2. Install CUDA, compile and install CUDA supported OpenCV 
