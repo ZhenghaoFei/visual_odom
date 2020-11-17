@@ -11,11 +11,13 @@ Demo vedio: https://www.youtube.com/watch?v=Z3S5J_BHQVw&t=17s
 ![alt text](https://github.com/ZhenghaoFei/visual_odom/blob/master/images/trajectory.png "trajectory")
 
 ### Requirements
-[OpenCV 3.0](https://opencv.org/)
+[OpenCV 3.0](https://opencv.org/)  
+If you are not using CUDA:  
 ```bash
 sudo apt update
 sudo apt install libopencv-dev 
 ```
+If you use CUDA, check [InstallOPENCV.md](https://github.com/ZhenghaoFei/visual_odom/InstallOPENCV.md)
 
 ### Dataset
 Tested on [KITTI](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) odometry dataset

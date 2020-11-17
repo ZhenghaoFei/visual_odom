@@ -11,7 +11,6 @@ if(USE_CUDA)
     find_package(CUDA)
     include_directories("${CUDA_INCLUDE_DIRS}")
     add_definitions(-DUSE_CUDA)
-
 endif(USE_CUDA)
 
 add_library(feature SHARED "feature.cpp")
