@@ -29,8 +29,8 @@ using namespace std;
 int main(int argc, char **argv)
 {
 
-    #if USE_C
-        printf("haha\n");
+    #if USE_CUDA
+        printf("CUDA Enabled\n");
     #endif
     // -----------------------------------------
     // Load images and calibration parameters

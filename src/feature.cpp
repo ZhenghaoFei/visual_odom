@@ -1,7 +1,7 @@
 #include "feature.h"
 #include "bucket.h"
 
-#if gpu_build
+#if USE_CUDA
 static void download(const cv::cuda::GpuMat& d_mat, std::vector<cv::Point2f>& vec)
 {
     vec.resize(d_mat.cols);
@@ -147,7 +147,7 @@ void circularMatching(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat
   // std::cout << "points : " << points_l_0.size() << " "<< points_r_0.size() << " "<< points_r_1.size() << " "<< points_l_1.size() << " "<<std::endl;
 }
 
-#if gpu_build
+#if USE_CUDA
 void circularMatching_gpu(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv::Mat img_r_1,
                       std::vector<cv::Point2f>& points_l_0, std::vector<cv::Point2f>& points_r_0,
                       std::vector<cv::Point2f>& points_l_1, std::vector<cv::Point2f>& points_r_1,
@@ -196,7 +196,7 @@ void circularMatching_gpu(cv::Mat img_l_0, cv::Mat img_r_0, cv::Mat img_l_1, cv:
   download(points_l_0_ret_gpu, points_l_0_return);
   
   clock_t toc_gpu = clock();
-  std::cerr << "calcOpticalFlowPyrLK gpu time: " << float(toc_gpu - tic_gpu)/CLOCKS_PER_SEC*1000 << "ms" << std::endl;
+  std::cerr << "calcOpticalFlowPyrLK(CUDA)  time: " << float(toc_gpu - tic_gpu)/CLOCKS_PER_SEC*1000 << "ms" << std::endl;
 
   deleteUnmatchFeaturesCircle(points_l_0, points_r_0, points_r_1, points_l_1, points_l_0_return,
                         status0, status1, status2, status3, current_features.ages);
