@@ -17,7 +17,7 @@ If you are not using CUDA:
 sudo apt update
 sudo apt install libopencv-dev 
 ```
-If you use CUDA, compile and install CUDA enabled OPENCV. check [InstallOPENCV.md](https://github.com/ZhenghaoFei/visual_odom/InstallOPENCV.md)
+If you use CUDA, compile and install CUDA enabled OPENCV. check [InstallOPENCV.md](https://github.com/ZhenghaoFei/visual_odom/blob/master/InstallOPENCV.md)
 
 ### Dataset
 Tested on [KITTI](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) odometry dataset
