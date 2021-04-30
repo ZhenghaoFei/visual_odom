@@ -1,10 +1,10 @@
 ## Stereo Visual Odometry
 
-This repository is C++ OpenCV implementation of Stereo Visual Odometry, using OpenCV calcOpticalFlowPyrLK for feature tracking.
+This repository is C++ OpenCV implementation of Stereo Visual Odometry, using OpenCV `calcOpticalFlowPyrLK` for feature tracking.
 
 Reference Paper: https://lamor.fer.hr/images/50020776/Cvisic2017.pdf
 
-Demo vedio: https://www.youtube.com/watch?v=Z3S5J_BHQVw&t=17s
+Demo video: https://www.youtube.com/watch?v=Z3S5J_BHQVw&t=17s
 
 ![alt text](https://github.com/ZhenghaoFei/visual_odom/blob/master/images/features.png "features")
 
@@ -20,7 +20,7 @@ sudo apt install libopencv-dev
 If you use CUDA, compile and install CUDA enabled OPENCV. check [InstallOPENCV.md](https://github.com/ZhenghaoFei/visual_odom/blob/master/InstallOPENCV.md)
 
 ### Dataset
-Tested on [KITTI](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) odometry dataset
+Tested on [KITTI](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) odometry dataset.
 
 ### Compile & Run
 ```bash
@@ -37,7 +37,7 @@ make -j4
 ```
 
 ### GPU CUDA acceleration
-Thanks to [temburuyk](https://github.com/ZhenghaoFei/visual_odom/commits?author=temburuyk), the most time consumtion function circularMatching() can be accelerated using CUDA and greately improve the performance. 60~80 FPS on a decent NVIDIA Card. 
+Thanks to [temburuyk](https://github.com/ZhenghaoFei/visual_odom/commits?author=temburuyk), the most time consumtion function `circularMatching()` can be accelerated using CUDA and greately improve the performance. 60~80 FPS on a decent NVIDIA Card. 
 To enable GPU acceleration
 1. Make sure you have CUDA compatible GPU.
 2. Install CUDA, compile and install CUDA supported OpenCV 
