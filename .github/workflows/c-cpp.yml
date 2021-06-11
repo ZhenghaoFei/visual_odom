@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v1
     - name: Install Dependencies
       run: sudo apt update && sudo apt install libopencv-dev
     - name: configure
