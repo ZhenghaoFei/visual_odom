@@ -162,7 +162,8 @@ void trackingFrame2Frame(cv::Mat& projMatrl, cv::Mat& projMatrr,
       cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
       cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) << projMatrl.at<float>(0, 0), projMatrl.at<float>(0, 1), projMatrl.at<float>(0, 2),
                                                    projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
-                                                   projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
+                                                   projMatrl.at<float>(2, 0), projMatrl.at<float>(2, 1), projMatrl.at<float>(2, 2));
+                                                   // projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
 
       int iterationsCount = 500;        // number of Ransac iterations.
       float reprojectionError = .5;    // maximum allowed distance to consider it an inlier.
