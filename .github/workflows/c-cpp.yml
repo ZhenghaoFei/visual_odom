@@ -17,3 +17,4 @@ jobs:
     - name: configure
       run: mkdir build && cd build && cmake ..
     - name: build
+      run: make -j
