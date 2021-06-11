@@ -1,4 +1,5 @@
 ## Stereo Visual Odometry
+![example workflow](https://github.com/ZhenghaoFei/visual_odom/actions/workflows/cmake.yml/badge.svg)
 
 This repository is C++ OpenCV implementation of Stereo Visual Odometry, using OpenCV `calcOpticalFlowPyrLK` for feature tracking.
 
